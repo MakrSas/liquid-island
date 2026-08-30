@@ -37,8 +37,12 @@ struct IslandTheme: Codable, Equatable {
 
         /// Радиус верхних углов (в режиме чёлки — «вывернутых» наружу).
         var topRadius: CGFloat = 9
-        /// Радиус нижних углов в покое.
-        var bottomRadiusClosed: CGFloat = 11
+        /// Радиус нижних углов в покое. Совпадает с радиусом обложки:
+        /// в свёрнутом виде остров и есть оправа для неё.
+        var bottomRadiusClosed: CGFloat = 6
+        /// Радиус обложки в покое и под курсором.
+        var artworkRadius: CGFloat = 6
+        var artworkRadiusHovered: CGFloat = 9
         /// Радиус нижних углов, когда остров раскрыт.
         var bottomRadiusOpen: CGFloat = 15
 

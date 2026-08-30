@@ -41,13 +41,32 @@ struct ArtworkView: View {
 struct WaveformView: View {
     var isPlaying: Bool
     var color: Color
+    /// Реальные уровни по полосам. Пусто — рисуем ровное дыхание по таймеру:
+    /// без разрешения на запись звука взять настоящие неоткуда.
+    var levels: [Float] = []
     var barCount: Int = 4
     var barWidth: CGFloat = 2.5
     var height: CGFloat = 14
 
-    @State private var phase: Double = 0
-
     var body: some View {
+        Group {
+            if levels.isEmpty {
+                synthetic
+            } else {
+                HStack(alignment: .center, spacing: barWidth * 0.8) {
+                    ForEach(Array(levels.prefix(barCount).enumerated()), id: \.offset) { _, level in
+                        Capsule(style: .continuous)
+                            .fill(color)
+                            .frame(width: barWidth, height: height * (0.18 + 0.82 * CGFloat(level)))
+                    }
+                }
+                .frame(height: height, alignment: .center)
+                .animation(.linear(duration: 1.0 / 30.0), value: levels)
+            }
+        }
+    }
+
+    private var synthetic: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !isPlaying)) { context in
             let t = context.date.timeIntervalSinceReferenceDate
             HStack(alignment: .center, spacing: barWidth * 0.8) {

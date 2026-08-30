@@ -34,12 +34,14 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>LSMinimumSystemVersion</key>
-    <string>14.0</string>
+    <string>15.0</string>
     <!-- Без иконки в Dock: весь интерфейс — это остров. -->
     <key>LSUIElement</key>
     <true/>
     <key>NSAppleEventsUsageDescription</key>
     <string>LiquidIsland читает название текущего трека из Музыки и Spotify.</string>
+    <key>NSAudioCaptureUsageDescription</key>
+    <string>LiquidIsland слушает системный выход, чтобы эквалайзер двигался в такт музыке.</string>
     <key>NSHighResolutionCapable</key>
     <true/>
 </dict>

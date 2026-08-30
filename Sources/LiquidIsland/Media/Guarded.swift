@@ -2,7 +2,10 @@ import Foundation
 
 /// Простой замок вокруг значения — нужен там, где к состоянию обращаются
 /// с фоновой очереди, а заводить актор ради одного поля излишне.
-final class Mutex<Value>: @unchecked Sendable {
+///
+/// Имя намеренно не `Mutex`: так называется тип из стандартной библиотеки
+/// Swift 6, и совпадение ломает рантайму поиск конформансов.
+final class Guarded<Value>: @unchecked Sendable {
     private var value: Value
     private let lock = NSLock()
 

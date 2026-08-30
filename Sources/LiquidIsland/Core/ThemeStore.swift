@@ -4,7 +4,17 @@ import Combine
 /// Хранилище темы: читает JSON с диска, отдаёт его вью и следит за правками.
 @MainActor
 final class ThemeStore: ObservableObject {
-    @Published private(set) var theme: IslandTheme
+    /// Тема раздаётся через собственный subject, а не через `@Published`:
+    /// на Swift 6.4 чтение `@Published` через хранимое свойство другого
+    /// объекта роняет рантайм на поиске конформанса.
+    let themeChanged: CurrentValueSubject<IslandTheme, Never>
+
+    private(set) var theme: IslandTheme {
+        didSet {
+            objectWillChange.send()
+            themeChanged.send(theme)
+        }
+    }
 
     private let url: URL
     private var watcher: DispatchSourceFileSystemObject?
@@ -18,7 +28,9 @@ final class ThemeStore: ObservableObject {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         url = dir.appendingPathComponent("theme.json")
 
-        theme = ThemeStore.read(from: url) ?? .default
+        let initial = ThemeStore.read(from: url) ?? .default
+        theme = initial
+        themeChanged = CurrentValueSubject(initial)
         if !FileManager.default.fileExists(atPath: url.path) { write(theme) }
         startWatching()
     }

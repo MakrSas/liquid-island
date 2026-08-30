@@ -18,6 +18,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         rebuildIslands()
         installStatusItem()
         if ProcessInfo.processInfo.environment["LIQUID_ISLAND_DEBUG"] == "1" { dumpDiagnostics() }
+        if ProcessInfo.processInfo.environment["LIQUID_ISLAND_TAP_TEST"] == "1" {
+            media.levels.start()
+            for delay in stride(from: 2.0, through: 8.0, by: 1.0) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                    guard let self else { return }
+                    let text = self.media.levels.bands
+                        .map { String(format: "%.2f", $0) }
+                        .joined(separator: " ")
+                    let stats = self.media.levels.debugStats
+                    print("tap \(Int(delay))s: running=\(self.media.levels.isRunning) [\(text)] callbacks=\(stats.callbacks) peak=\(String(format: "%.4f", stats.peak))")
+                }
+            }
+        }
 
         NotificationCenter.default
             .publisher(for: NSApplication.didChangeScreenParametersNotification)
@@ -25,7 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] _ in self?.rebuildIslands() }
             .store(in: &bag)
 
-        themeStore.$theme
+        themeStore.themeChanged
             .map(\.behavior.displayMode)
             .removeDuplicates()
             .dropFirst()
@@ -90,6 +103,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let np = self.media.nowPlaying
             print("provider: \(self.media.activeProviderName)")
             print("nowPlaying: '\(np.title)' — '\(np.artist)' playing=\(np.isPlaying) dur=\(Int(np.duration))")
+            print("accent: \(np.accent.map { "\($0)" } ?? "нет")")
+            print("audio tap: \(self.media.levels.isRunning ? "слушает" : "не запущен") bands=\(self.media.levels.bands)")
         }
     }
 

@@ -38,7 +38,7 @@ final class IslandState: ObservableObject {
             }
             .store(in: &bag)
 
-        themeStore.$theme
+        themeStore.themeChanged
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &bag)
     }

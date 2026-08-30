@@ -31,7 +31,7 @@ enum PreviewRenderer {
             )
             render(
                 view: shell(theme: theme, style: style, size: theme.geometry.compactSize) {
-                    CompactMediaView(track: sample, theme: theme)
+                    CompactMediaView(track: sample, theme: theme, levels: [0.9, 0.5, 0.75, 0.35])
                 },
                 size: sizeFor(theme.geometry.compactSize),
                 to: directory.appendingPathComponent("card-\(suffix).png")
@@ -42,14 +42,14 @@ enum PreviewRenderer {
             )
             render(
                 view: shell(theme: theme, style: style, size: hovered) {
-                    CompactMediaView(track: sample, theme: theme, showsArtist: true)
+                    CompactMediaView(track: sample, theme: theme, levels: [0.9, 0.5, 0.75, 0.35], showsArtist: true)
                 },
                 size: sizeFor(hovered),
                 to: directory.appendingPathComponent("hovered-\(suffix).png")
             )
             render(
                 view: shell(theme: theme, style: style, size: theme.geometry.expandedSize) {
-                    ExpandedMediaView(media: StubHub(track: sample), theme: theme)
+                    ExpandedMediaView(media: StubHub(track: sample), theme: theme, levels: [0.9, 0.5, 0.75, 0.35])
                 },
                 size: sizeFor(theme.geometry.expandedSize),
                 to: directory.appendingPathComponent("expanded-\(suffix).png")

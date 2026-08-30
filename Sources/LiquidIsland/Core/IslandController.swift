@@ -24,7 +24,12 @@ final class IslandController {
         let frame = IslandController.panelFrame(for: screen, theme: themeStore.theme)
         panel = IslandPanel(contentRect: frame)
 
-        let root = IslandRootView(state: state, media: media, themeStore: themeStore)
+        let root = IslandRootView(
+            state: state,
+            media: media,
+            themeStore: themeStore,
+            audio: media.levels
+        )
         host = IslandHostingView(rootView: AnyView(root))
         host.frame = CGRect(origin: .zero, size: frame.size)
         host.autoresizingMask = [.width, .height]
@@ -39,7 +44,7 @@ final class IslandController {
             .sink { [weak self] _ in self?.syncMouseRegion() }
             .store(in: &bag)
 
-        themeStore.$theme
+        themeStore.themeChanged
             .receive(on: RunLoop.main)
             .sink { [weak self] theme in self?.applyTheme(theme) }
             .store(in: &bag)

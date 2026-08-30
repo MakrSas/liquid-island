@@ -13,13 +13,16 @@ class MediaHub: ObservableObject {
     /// Взводится при смене трека — по нему остров показывает всплывающую активность.
     let trackChanged = PassthroughSubject<NowPlaying, Never>()
 
+    /// Реальные уровни звука для эквалайзера.
+    let levels = AudioLevels()
+
     private let providers: [MediaProvider]
     private let queue = DispatchQueue(label: "app.liquidisland.media", qos: .utility)
     private var timer: DispatchSourceTimer?
     private var lastTrackKey: String = ""
     /// Опрос уже идёт — не ставим второй в очередь, если источник тормозит.
     private var polling = false
-    private nonisolated let accentCache = Mutex<(key: String, color: NSColor?)?>(nil)
+    private nonisolated let accentCache = Guarded<(key: String, color: NSColor?)?>(nil)
 
     init() {
         providers = [MediaRemoteProvider(), ScriptingProvider(), SystemAudioProvider()]
@@ -27,9 +30,13 @@ class MediaHub: ObservableObject {
 
     func start(interval: TimeInterval = 1.0) {
         stop()
-        let timer = DispatchSource.makeTimerSource(queue: queue)
+        // Таймер тикает на главной очереди: сам он ничего тяжёлого не делает,
+        // а трогать изолированный главным актором объект с чужой очереди нельзя.
+        let timer = DispatchSource.makeTimerSource(queue: .main)
         timer.schedule(deadline: .now(), repeating: interval, leeway: .milliseconds(200))
-        timer.setEventHandler { [weak self] in self?.poll() }
+        timer.setEventHandler { [weak self] in
+            MainActor.assumeIsolated { self?.poll() }
+        }
         timer.resume()
         self.timer = timer
     }
@@ -37,27 +44,28 @@ class MediaHub: ObservableObject {
     func stop() {
         timer?.cancel()
         timer = nil
+        levels.stop()
     }
 
-    /// Вызывается на фоновой очереди.
-    private nonisolated func poll() {
-        Task { @MainActor in
-            guard !self.polling else { return }
-            self.polling = true
-            let providers = self.providers
-            self.queue.async {
-                var result: (NowPlaying, String)?
-                for provider in providers {
-                    if var value = provider.fetch() {
-                        value.accent = self.accent(for: value)
-                        result = (value, provider.displayName)
-                        break
-                    }
+    /// Опрос источников. Сам метод лёгкий: вся работа уходит на фоновую
+    /// очередь, потому что AppleScript синхронен и стоит десятки миллисекунд.
+    private func poll() {
+        guard !polling else { return }
+        polling = true
+        let providers = self.providers
+        queue.async { [weak self] in
+            guard let self else { return }
+            var result: (NowPlaying, String)?
+            for provider in providers {
+                if var value = provider.fetch() {
+                    value.accent = self.accent(for: value)
+                    result = (value, provider.displayName)
+                    break
                 }
-                Task { @MainActor in
-                    self.polling = false
-                    self.apply(result)
-                }
+            }
+            Task { @MainActor in
+                self.polling = false
+                self.apply(result)
             }
         }
     }
@@ -74,6 +82,13 @@ class MediaHub: ObservableObject {
         }
         if value.isEmpty { lastTrackKey = "" }
         if value != nowPlaying { nowPlaying = value }
+
+        // Слушаем выход только пока что-то играет: отвод недёшев.
+        if value.isPlaying, !levels.isRunning {
+            levels.start()
+        } else if !value.isPlaying, levels.isRunning {
+            levels.stop()
+        }
     }
 
     /// Разбор обложки стоит недёшево, а меняется она только вместе с треком.

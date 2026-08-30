@@ -4,6 +4,7 @@ struct IslandRootView: View {
     @ObservedObject var state: IslandState
     @ObservedObject var media: MediaHub
     @ObservedObject var themeStore: ThemeStore = .shared
+    @ObservedObject var audio: AudioLevels
 
     private var theme: IslandTheme { themeStore.theme }
     private var size: CGSize { state.size }
@@ -78,6 +79,7 @@ struct IslandRootView: View {
                 CompactMediaView(
                     track: media.nowPlaying,
                     theme: theme,
+                    levels: audio.bands,
                     showsArtist: state.phase == .hovered
                 )
             } else {
@@ -85,7 +87,7 @@ struct IslandRootView: View {
                 Color.clear
             }
         case .expanded:
-            ExpandedMediaView(media: media, theme: theme)
+            ExpandedMediaView(media: media, theme: theme, levels: audio.bands)
                 .transition(.opacity)
         }
     }
@@ -96,16 +98,13 @@ struct IslandRootView: View {
 struct CompactMediaView: View {
     let track: NowPlaying
     let theme: IslandTheme
+    var levels: [Float] = []
     /// В покое карточка ровно по высоте пилюли — на вторую строку места нет.
     /// Она появляется, когда остров подрастает под курсором.
     var showsArtist: Bool = false
 
-    /// Радиус обложки концентричен кромке острова: он меньше ровно на
-    /// величину поля вокруг, поэтому дуги идут параллельно и вложение
-    /// читается как одна деталь, а не две разные.
     private var artworkRadius: CGFloat {
-        let inset = theme.geometry.compactPadding.top
-        return max(theme.geometry.bottomRadiusClosed - inset, 3)
+        showsArtist ? theme.geometry.artworkRadiusHovered : theme.geometry.artworkRadius
     }
 
     /// Цвет обложки, если его удалось вытянуть, иначе обычный белый.
@@ -136,6 +135,7 @@ struct CompactMediaView: View {
             WaveformView(
                 isPlaying: track.isPlaying,
                 color: accentColor,
+                levels: levels,
                 height: showsArtist ? 14 : 10
             )
         }
@@ -147,6 +147,7 @@ struct CompactMediaView: View {
 struct ExpandedMediaView: View {
     @ObservedObject var media: MediaHub
     let theme: IslandTheme
+    var levels: [Float] = []
 
     private var track: NowPlaying { media.nowPlaying }
 
@@ -174,6 +175,7 @@ struct ExpandedMediaView: View {
                     isPlaying: track.isPlaying,
                     color: track.accent.map(Color.init)
                         ?? theme.palette.primaryText.color.opacity(0.85),
+                    levels: levels,
                     barCount: 4,
                     height: 16
                 )

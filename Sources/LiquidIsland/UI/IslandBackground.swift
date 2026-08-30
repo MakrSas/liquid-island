@@ -2,58 +2,59 @@ import SwiftUI
 
 /// Подложка острова: чёрный верх, переходящий книзу в жидкое стекло.
 ///
-/// Стекло — нативное (`NSGlassEffectView`), поэтому оно живёт по системным
-/// правилам: следует настройкам прозрачности и контраста, реагирует на то,
-/// что под ним. У него обязательно есть собственная кромка с отступом от краёв
-/// острова: преломление и блик считаются именно по ней, и без неё эффект
-/// вырождается в обычное размытие. Стык со чёрным размывается градиентом,
-/// поэтому кромка читается только снизу и по бокам — сверху стекло втекает
-/// в чёрное.
+/// Важная тонкость: к самому стеклу нельзя применять `mask` или `opacity`.
+/// Оба заставляют SwiftUI отрисовать вью в отдельный слой, и нативное стекло
+/// теряет живую подложку — остаётся плоское размытие. Поэтому переход
+/// рисуется чёрным градиентом поверх стекла, а не маской по нему.
 struct IslandBackground: View {
     let shape: IslandShape
     let theme: IslandTheme
     /// 0 — сплошной чёрный, 1 — переход в стекло раскрыт полностью.
     let glassReveal: Double
 
+    private var showsGlass: Bool {
+        theme.palette.useLiquidGlass && glassReveal > 0.5
+    }
+
     var body: some View {
         GeometryReader { geo in
             ZStack {
                 shape.fill(theme.palette.background.color)
 
-                if theme.palette.useLiquidGlass && glassReveal > 0 {
-                    glass(in: geo.size)
-                        .opacity(glassReveal)
+                if showsGlass {
+                    LiquidGlassView(
+                        cornerRadius: theme.geometry.glassCornerRadius,
+                        isClear: theme.palette.glassStyle == .clear,
+                        tint: theme.palette.glassTint?.nsColor,
+                        isInteractive: theme.palette.glassInteractive
+                    )
+                    .frame(
+                        width: geo.size.width - theme.geometry.glassInset * 2,
+                        height: geo.size.height * theme.geometry.glassHeightFraction
+                    )
+                    .frame(width: geo.size.width, height: geo.size.height, alignment: .bottom)
+                    .padding(.bottom, theme.geometry.glassInset)
+
+                    // Чёрный сверху вниз растворяется — он и прячет верхнюю
+                    // кромку стекла, оставляя видимыми боковые и нижнюю.
+                    shape.fill(
+                        LinearGradient(
+                            stops: [
+                                .init(color: theme.palette.background.color, location: 0),
+                                .init(
+                                    color: theme.palette.background.color,
+                                    location: theme.geometry.glassFadeStart
+                                ),
+                                .init(color: .clear, location: theme.geometry.glassFadeEnd)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .allowsHitTesting(false)
                 }
             }
         }
         .clipShape(shape)
-    }
-
-    private func glass(in size: CGSize) -> some View {
-        let inset = theme.geometry.glassInset
-        let height = size.height * theme.geometry.glassHeightFraction
-
-        return LiquidGlassView(
-            cornerRadius: theme.geometry.glassCornerRadius,
-            isClear: theme.palette.glassStyle == .clear,
-            tint: theme.palette.glassTint?.nsColor,
-            isInteractive: theme.palette.glassInteractive
-        )
-        .frame(width: size.width - inset * 2, height: height)
-        // Верхний край стекла растворяем — там оно должно втекать в чёрное,
-        // а не резать остров пополам.
-        .mask(
-            LinearGradient(
-                stops: [
-                    .init(color: .clear, location: 0),
-                    .init(color: .white, location: theme.geometry.glassFadeEnd - theme.geometry.glassFadeStart),
-                    .init(color: .white, location: 1)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
-        .frame(width: size.width, height: size.height, alignment: .bottom)
-        .padding(.bottom, inset)
     }
 }

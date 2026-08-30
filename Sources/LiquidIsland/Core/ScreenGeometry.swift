@@ -38,6 +38,7 @@ struct NotchMetrics: Equatable {
     }
 }
 
+@MainActor
 extension NSScreen {
     /// Экран, на котором сейчас находится курсор.
     static var withMouse: NSScreen? {
@@ -50,6 +51,8 @@ extension NSScreen {
         screens.first { $0.safeAreaInsets.top > 0 }
     }
 
+    /// Главный актор обязателен: с macOS 15 `deviceDescription` изолирован им,
+    /// и обращение со стороны роняет процесс.
     var displayID: CGDirectDisplayID {
         (deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? 0
     }
