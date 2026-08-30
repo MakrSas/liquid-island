@@ -35,6 +35,13 @@ final class IslandState: ObservableObject {
             .sink { [weak self] track in self?.presentActivity(track) }
             .store(in: &bag)
 
+        // Появление или пропажа трека меняет размер фазы наведения.
+        media.$nowPlaying
+            .map(\.isEmpty)
+            .removeDuplicates()
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &bag)
+
         themeStore.$theme
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &bag)
@@ -49,6 +56,7 @@ final class IslandState: ObservableObject {
         case .closed:
             return metrics.hasHardwareNotch ? metrics.closedSize : g.closedSize
         case .hovered:
+            if theme.behavior.hoverShowsMedia && hasMedia { return g.compactSize }
             let base = metrics.hasHardwareNotch ? metrics.closedSize : g.closedSize
             return CGSize(
                 width: base.width + g.hoverPadding.width,
@@ -63,14 +71,22 @@ final class IslandState: ObservableObject {
 
     var bottomRadius: CGFloat {
         switch phase {
-        case .closed, .hovered: return theme.geometry.bottomRadiusClosed
+        case .closed:
+            return theme.geometry.bottomRadiusClosed
+        case .hovered:
+            return (theme.behavior.hoverShowsMedia && hasMedia)
+                ? theme.geometry.bottomRadiusOpen
+                : theme.geometry.bottomRadiusClosed
         case .activity, .expanded: return theme.geometry.bottomRadiusOpen
         }
     }
 
     var shapeStyle: IslandShape.Style {
-        metrics.hasHardwareNotch ? .notch : .floating
+        (metrics.hasHardwareNotch || theme.behavior.alwaysUseNotchShape) ? .notch : .floating
     }
+
+    /// Есть ли что показывать в компактном виде.
+    var hasMedia: Bool { !media.nowPlaying.isEmpty }
 
     var isOpen: Bool { phase == .expanded }
 
@@ -78,17 +94,17 @@ final class IslandState: ObservableObject {
 
     func mouseEntered() {
         cancelHoverWork()
-        let behavior = theme.behavior
-        guard behavior.expandOnHover else {
-            transition(to: .hovered)
-            return
-        }
-        // Короткая задержка: остров не должен раскрываться от случайного
-        // проезда курсора к меню-бару.
+        guard phase != .expanded else { return }
+        // Наведение показывает трек. Полный плеер — по клику: раскрывать
+        // всё под курсором слишком навязчиво.
         transition(to: .hovered)
+        guard theme.behavior.expandOnHover else { return }
         let work = DispatchWorkItem { [weak self] in self?.transition(to: .expanded) }
         hoverOpenWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + behavior.hoverOpenDelay, execute: work)
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + theme.behavior.hoverOpenDelay,
+            execute: work
+        )
     }
 
     func mouseExited() {

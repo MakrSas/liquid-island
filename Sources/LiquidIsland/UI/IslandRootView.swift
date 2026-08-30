@@ -14,8 +14,8 @@ struct IslandRootView: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        // На маках без чёлки пилюля висит чуть ниже кромки, как на iPhone.
-        .padding(.top, state.metrics.hasHardwareNotch ? 0 : theme.geometry.floatingTopInset)
+        // По умолчанию ноль: остров врастает в кромку экрана, а не висит под ней.
+        .padding(.top, theme.geometry.floatingTopInset)
     }
 
     private var island: some View {
@@ -37,7 +37,9 @@ struct IslandRootView: View {
             )
 
             content
-                .padding(theme.geometry.contentPadding)
+                .padding(state.phase == .expanded
+                         ? theme.geometry.contentPadding
+                         : theme.geometry.compactPadding)
                 .frame(width: size.width, height: size.height)
                 .clipped()
         }
@@ -53,19 +55,25 @@ struct IslandRootView: View {
                 bottomRadius: state.bottomRadius
             )
         )
-        .onHover { inside in
-            if inside { state.mouseEntered() } else { state.mouseExited() }
-        }
+        // Наведение отслеживает IslandController: окно почти всё время
+        // сквозное, и SwiftUI о движениях мыши просто не узнаёт.
         .onTapGesture { state.toggle() }
     }
 
     @ViewBuilder
     private var content: some View {
         switch state.phase {
-        case .closed, .hovered:
+        case .closed:
             // В покое остров — просто чёрное пятно. На маках с чёлкой он от
             // неё неотличим, и это ровно то, чего мы добиваемся.
             Color.clear
+        case .hovered:
+            if theme.behavior.hoverShowsMedia && state.hasMedia {
+                CompactMediaView(track: media.nowPlaying, theme: theme)
+                    .transition(.opacity)
+            } else {
+                Color.clear
+            }
         case .activity:
             CompactMediaView(track: state.activityPayload ?? media.nowPlaying, theme: theme)
                 .transition(.opacity)
@@ -84,7 +92,7 @@ struct CompactMediaView: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            ArtworkView(image: track.artwork, size: 22, cornerRadius: 6)
+            ArtworkView(image: track.artwork, size: 28, cornerRadius: 7)
             VStack(alignment: .leading, spacing: 0) {
                 Text(track.title.isEmpty ? "Ничего не играет" : track.title)
                     .font(.system(size: 11, weight: .semibold))

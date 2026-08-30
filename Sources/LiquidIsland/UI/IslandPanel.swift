@@ -37,13 +37,7 @@ final class IslandPanel: NSPanel {
     override var acceptsFirstResponder: Bool { false }
 }
 
-/// Хост-вью, который пропускает клики мимо себя везде, где остров прозрачен.
-final class PassthroughHostingView<Content: View>: NSHostingView<Content> {
-    /// Прямоугольник (в координатах вью), внутри которого мы ловим мышь.
-    var interactiveRect: CGRect = .zero
-
-    override func hitTest(_ point: NSPoint) -> NSView? {
-        guard interactiveRect.contains(convert(point, from: superview)) else { return nil }
-        return super.hitTest(point)
-    }
-}
+/// Хост-вью острова. Клики сквозь окно решаются не здесь, а переключением
+/// `ignoresMouseEvents` у самой панели: так мимо острова проходит вообще всё,
+/// включая события, до которых hitTest не добирается.
+final class IslandHostingView<Content: View>: NSHostingView<Content> {}

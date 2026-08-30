@@ -19,15 +19,27 @@ final class ScriptingProvider: MediaProvider {
 
     let displayName = "AppleScript"
 
+    /// Обложка меняется только вместе с треком, а её загрузка — самая дорогая
+    /// операция здесь (у Spotify это поход в сеть). Кешируем по ключу трека.
+    private var artworkCache: (key: String, image: NSImage?)?
+
     private func isRunning(_ target: Target) -> Bool {
         !NSRunningApplication.runningApplications(withBundleIdentifier: target.bundleID).isEmpty
     }
 
     private var activeTarget: Target? {
-        // Предпочитаем то приложение, которое реально играет.
+        // Приоритет у того приложения, которое действительно играет прямо
+        // сейчас; запущенное, но поставленное на паузу — только как запасной.
         let running = targets.filter(isRunning)
-        for target in running where state(of: target) == "playing" { return target }
-        return running.first
+        var fallback: Target?
+        for target in running {
+            switch state(of: target) {
+            case "playing": return target
+            case "paused": if fallback == nil { fallback = target }
+            default: continue
+            }
+        }
+        return fallback
     }
 
     func isAvailable() -> Bool { activeTarget != nil }
@@ -72,12 +84,19 @@ final class ScriptingProvider: MediaProvider {
             title: parts[0],
             artist: parts[1],
             album: parts[2],
-            artwork: artwork(for: target),
+            artwork: cachedArtwork(for: target, key: "\(target.bundleID)|\(parts[0])|\(parts[1])"),
             duration: duration,
             elapsed: Double(parts[4]) ?? 0,
             isPlaying: parts[5].lowercased() == "playing",
             sourceBundleID: target.bundleID
         )
+    }
+
+    private func cachedArtwork(for target: Target, key: String) -> NSImage? {
+        if let cache = artworkCache, cache.key == key { return cache.image }
+        let image = artwork(for: target)
+        artworkCache = (key, image)
+        return image
     }
 
     private func artwork(for target: Target) -> NSImage? {
@@ -95,8 +114,10 @@ final class ScriptingProvider: MediaProvider {
 
         let source = "tell application \"Spotify\" to return artwork url of current track"
         guard let urlString = run(source)?.stringValue,
-              let url = URL(string: urlString),
-              let data = try? Data(contentsOf: url) else { return nil }
+              let url = URL(string: urlString) else { return nil }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 4
+        guard let data = try? Data(contentsOf: url) else { return nil }
         return NSImage(data: data)
     }
 

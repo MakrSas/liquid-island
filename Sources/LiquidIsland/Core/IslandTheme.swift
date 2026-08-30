@@ -12,11 +12,12 @@ struct IslandTheme: Codable, Equatable {
 
     struct Geometry: Codable, Equatable {
         /// Размер «пилюли» в покое на маках без чёлки.
-        var closedSize: CGSize = CGSize(width: 148, height: 32)
+        /// Высота держится в пределах меню-бара, чтобы остров не залезал на окна.
+        var closedSize: CGSize = CGSize(width: 172, height: 26)
         /// Насколько остров подрастает при наведении курсора.
-        var hoverPadding: CGSize = CGSize(width: 22, height: 4)
+        var hoverPadding: CGSize = CGSize(width: 26, height: 3)
         /// Компактный вид: обложка слева, визуализатор справа.
-        var compactSize: CGSize = CGSize(width: 260, height: 38)
+        var compactSize: CGSize = CGSize(width: 288, height: 40)
         /// Развёрнутая панель.
         var expandedSize: CGSize = CGSize(width: 420, height: 172)
 
@@ -27,10 +28,13 @@ struct IslandTheme: Codable, Equatable {
         /// Радиус нижних углов, когда остров раскрыт.
         var bottomRadiusOpen: CGFloat = 24
 
-        /// Отступ пилюли от верхней кромки экрана на маках без чёлки.
-        var floatingTopInset: CGFloat = 4
-        /// Внутренние поля контента.
-        var contentPadding: EdgeInsets = EdgeInsets(top: 10, leading: 14, bottom: 12, trailing: 14)
+        /// Отступ от верхней кромки экрана. Ноль — остров врастает в кромку,
+        /// как аппаратный вырез на новых маках. Больше нуля — «летит» под ней.
+        var floatingTopInset: CGFloat = 0
+        /// Внутренние поля раскрытого острова.
+        var contentPadding: EdgeInsets = EdgeInsets(top: 12, leading: 16, bottom: 14, trailing: 16)
+        /// Внутренние поля компактной карточки — она гораздо ниже.
+        var compactPadding: EdgeInsets = EdgeInsets(top: 5, leading: 10, bottom: 5, trailing: 12)
     }
 
     // MARK: - Цвета
@@ -64,10 +68,13 @@ struct IslandTheme: Codable, Equatable {
     // MARK: - Поведение
 
     struct Behavior: Codable, Equatable {
-        /// Раскрывать по наведению курсора, а не только по клику.
-        var expandOnHover: Bool = true
+        /// Раскрывать полностью по наведению. По умолчанию выключено:
+        /// наведение только показывает трек, полный плеер — по клику.
+        var expandOnHover: Bool = false
+        /// Показывать ли трек при наведении.
+        var hoverShowsMedia: Bool = true
         /// Задержка перед раскрытием, чтобы остров не дёргался от каждого движения.
-        var hoverOpenDelay: Double = 0.18
+        var hoverOpenDelay: Double = 0.45
         /// Задержка перед схлопыванием после ухода курсора.
         var hoverCloseDelay: Double = 0.35
         /// Показывать компактный вид при смене трека.
@@ -76,6 +83,9 @@ struct IslandTheme: Codable, Equatable {
         var liveActivityDuration: Double = 3.0
         /// На каких экранах показывать остров.
         var displayMode: DisplayMode = .notchedOrMain
+        /// Держать форму выреза даже на экранах без чёлки — остров врастает
+        /// в кромку вместо того, чтобы висеть отдельной плашкой.
+        var alwaysUseNotchShape: Bool = true
     }
 
     enum DisplayMode: String, Codable, CaseIterable {
@@ -94,7 +104,7 @@ struct IslandTheme: Codable, Equatable {
     var motion = Motion()
     var behavior = Behavior()
     /// Порядок модулей в раскрытом виде — задел под пользовательскую сборку.
-    var modules: [String] = ["media", "shelf", "calendar"]
+    var modules: [String] = ["media"]
 
     static let `default` = IslandTheme()
 }

@@ -3,8 +3,9 @@ import Combine
 
 /// Собирает Now Playing из доступных источников и держит его актуальным.
 ///
-/// Провайдеры перебираются по приоритету: системный MediaRemote, если он
-/// открыт, иначе AppleScript-мост. Порядок легко расширить своими модулями.
+/// Опрос идёт целиком на фоновой очереди: AppleScript синхронен и стоит
+/// десятки миллисекунд, а на главном потоке это видно как рывки анимации.
+/// В главный поток попадает только готовый результат.
 @MainActor
 class MediaHub: ObservableObject {
     @Published private(set) var nowPlaying: NowPlaying = .empty
@@ -12,48 +13,58 @@ class MediaHub: ObservableObject {
     /// Взводится при смене трека — по нему остров показывает всплывающую активность.
     let trackChanged = PassthroughSubject<NowPlaying, Never>()
 
-    private var providers: [MediaProvider] = []
-    private var timer: Timer?
+    private let providers: [MediaProvider]
+    private let queue = DispatchQueue(label: "app.liquidisland.media", qos: .utility)
+    private var timer: DispatchSourceTimer?
     private var lastTrackKey: String = ""
+    /// Опрос уже идёт — не ставим второй в очередь, если источник тормозит.
+    private var polling = false
 
     init() {
-        let candidates: [MediaProvider] = [MediaRemoteProvider(), ScriptingProvider()]
-        providers = candidates
-        resolveProvider()
+        providers = [MediaRemoteProvider(), ScriptingProvider()]
     }
 
     func start(interval: TimeInterval = 1.0) {
         stop()
-        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.tick() }
-        }
-        RunLoop.main.add(timer, forMode: .common)
+        let timer = DispatchSource.makeTimerSource(queue: queue)
+        timer.schedule(deadline: .now(), repeating: interval, leeway: .milliseconds(200))
+        timer.setEventHandler { [weak self] in self?.poll() }
+        timer.resume()
         self.timer = timer
-        tick()
     }
 
     func stop() {
-        timer?.invalidate()
+        timer?.cancel()
         timer = nil
     }
 
-    private func resolveProvider() {
-        activeProviderName = providers.first(where: { $0.isAvailable() })?.displayName ?? "—"
-    }
-
-    private func tick() {
-        var fresh: NowPlaying?
-        for provider in providers {
-            if let value = provider.fetch() {
-                fresh = value
-                if activeProviderName != provider.displayName {
-                    activeProviderName = provider.displayName
+    /// Вызывается на фоновой очереди.
+    private nonisolated func poll() {
+        Task { @MainActor in
+            guard !self.polling else { return }
+            self.polling = true
+            let providers = self.providers
+            self.queue.async {
+                var result: (NowPlaying, String)?
+                for provider in providers {
+                    if let value = provider.fetch() {
+                        result = (value, provider.displayName)
+                        break
+                    }
                 }
-                break
+                Task { @MainActor in
+                    self.polling = false
+                    self.apply(result)
+                }
             }
         }
+    }
 
-        let value = fresh ?? .empty
+    private func apply(_ result: (NowPlaying, String)?) {
+        let value = result?.0 ?? .empty
+        let name = result?.1 ?? "—"
+        if activeProviderName != name { activeProviderName = name }
+
         let key = "\(value.title)|\(value.artist)"
         if !value.isEmpty, key != lastTrackKey {
             lastTrackKey = key
@@ -70,13 +81,16 @@ class MediaHub: ObservableObject {
     }
 
     func send(_ command: MediaCommand) {
-        for provider in providers where provider.isAvailable() {
-            provider.send(command)
-            break
+        let providers = self.providers
+        queue.async {
+            for provider in providers where provider.fetch() != nil {
+                provider.send(command)
+                break
+            }
         }
         // Не ждём следующего тика — отзывчивость важнее точности на полсекунды.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-            Task { @MainActor in self?.tick() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+            self?.poll()
         }
     }
 }

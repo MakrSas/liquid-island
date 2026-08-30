@@ -9,8 +9,11 @@ final class IslandController {
     let state: IslandState
 
     private let panel: IslandPanel
-    private let host: PassthroughHostingView<AnyView>
+    private let host: IslandHostingView<AnyView>
     private var bag = Set<AnyCancellable>()
+    private var globalMonitor: Any?
+    private var localMonitor: Any?
+    private var mouseInside = false
 
     init(screen: NSScreen, media: MediaHub, themeStore: ThemeStore = .shared) {
         self.screen = screen
@@ -21,7 +24,7 @@ final class IslandController {
         panel = IslandPanel(contentRect: frame)
 
         let root = IslandRootView(state: state, media: media, themeStore: themeStore)
-        host = PassthroughHostingView(rootView: AnyView(root))
+        host = IslandHostingView(rootView: AnyView(root))
         host.frame = CGRect(origin: .zero, size: frame.size)
         host.autoresizingMask = [.width, .height]
         panel.contentView = host
@@ -32,7 +35,7 @@ final class IslandController {
         // Кликабельна только сама фигура острова, всё остальное — сквозное.
         state.$phase
             .receive(on: RunLoop.main)
-            .sink { [weak self] _ in self?.updateInteractiveArea() }
+            .sink { [weak self] _ in self?.syncMouseRegion() }
             .store(in: &bag)
 
         themeStore.$theme
@@ -40,7 +43,8 @@ final class IslandController {
             .sink { [weak self] theme in self?.applyTheme(theme) }
             .store(in: &bag)
 
-        updateInteractiveArea()
+        installMouseMonitors()
+        syncMouseRegion()
     }
 
     /// Окно всегда размером с самое большое состояние — так анимация
@@ -63,22 +67,52 @@ final class IslandController {
         state.metrics = NotchMetrics.measure(for: screen)
         let frame = IslandController.panelFrame(for: screen, theme: theme)
         panel.setFrame(frame, display: true)
-        updateInteractiveArea()
+        syncMouseRegion()
     }
 
-    /// Прямоугольник в координатах хост-вью (у AppKit начало координат снизу).
-    private func updateInteractiveArea() {
+    // MARK: - Мышь
+
+    /// Прямоугольник острова в координатах экрана.
+    private var islandScreenRect: CGRect {
         let size = state.size
-        let inset = state.metrics.hasHardwareNotch ? 0 : state.theme.geometry.floatingTopInset
-        let bounds = host.bounds
-        // Небольшой запас по краям, чтобы курсор не «терял» остров на анимации.
-        let padding: CGFloat = 6
-        host.interactiveRect = CGRect(
-            x: bounds.midX - size.width / 2 - padding,
-            y: bounds.maxY - size.height - inset - padding,
+        let inset = state.theme.geometry.floatingTopInset
+        // Небольшой запас, чтобы курсор не «терял» остров прямо на анимации.
+        let padding: CGFloat = 4
+        return CGRect(
+            x: screen.frame.midX - size.width / 2 - padding,
+            y: screen.frame.maxY - size.height - inset - padding,
             width: size.width + padding * 2,
-            height: size.height + inset + padding * 2
+            height: size.height + inset + padding
         )
+    }
+
+    /// Окно занимает широкую полосу вверху экрана, но перехватывать мышь оно
+    /// должно только там, где нарисован остров. Иначе оно съедает клики по
+    /// меню-бару и по окнам под собой.
+    private func installMouseMonitors() {
+        let handler: (NSEvent) -> Void = { [weak self] _ in self?.syncMouseRegion() }
+        globalMonitor = NSEvent.addGlobalMonitorForEvents(
+            matching: [.mouseMoved, .leftMouseDragged],
+            handler: handler
+        )
+        localMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.mouseMoved, .leftMouseDragged]
+        ) { [weak self] event in
+            self?.syncMouseRegion()
+            return event
+        }
+    }
+
+    /// Обновляет и проходимость окна, и фазу острова — одним решением,
+    /// чтобы они не могли разойтись.
+    private func syncMouseRegion() {
+        let inside = islandScreenRect.contains(NSEvent.mouseLocation)
+        if panel.ignoresMouseEvents == inside {
+            panel.ignoresMouseEvents = !inside
+        }
+        guard inside != mouseInside else { return }
+        mouseInside = inside
+        if inside { state.mouseEntered() } else { state.mouseExited() }
     }
 
     func refreshScreenMetrics() {
@@ -86,6 +120,10 @@ final class IslandController {
     }
 
     func close() {
+        if let globalMonitor { NSEvent.removeMonitor(globalMonitor) }
+        if let localMonitor { NSEvent.removeMonitor(localMonitor) }
+        globalMonitor = nil
+        localMonitor = nil
         panel.orderOut(nil)
     }
 }
