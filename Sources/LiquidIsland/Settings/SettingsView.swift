@@ -81,7 +81,6 @@ struct SettingsView: View {
                         Text("Наведение").tag(IslandPhase.hovered)
                         Text("Раскрытый").tag(IslandPhase.expanded)
                     }
-                    .pickerStyle(.segmented)
                 }
             }
 
@@ -106,24 +105,44 @@ private struct AppearanceSection: View {
     var body: some View {
         Section("Размеры") {
             Stepper(value: store.sizeBinding(\.geometry.compactSize, axis: .width), in: 120...600, step: 4) {
-                LabeledValue("Ширина карточки", store.theme.geometry.compactSize.width, unit: "pt")
+                Text("Ширина карточки: \(Int(store.theme.geometry.compactSize.width)) pt")
             }
             Stepper(value: store.sizeBinding(\.geometry.compactSize, axis: .height), in: 20...60, step: 1) {
-                LabeledValue("Высота карточки", store.theme.geometry.compactSize.height, unit: "pt")
+                Text("Высота карточки: \(Int(store.theme.geometry.compactSize.height)) pt")
             }
             Stepper(value: store.sizeBinding(\.geometry.expandedSize, axis: .width), in: 260...800, step: 4) {
-                LabeledValue("Ширина раскрытого", store.theme.geometry.expandedSize.width, unit: "pt")
+                Text("Ширина раскрытого: \(Int(store.theme.geometry.expandedSize.width)) pt")
             }
             Stepper(value: store.sizeBinding(\.geometry.expandedSize, axis: .height), in: 100...360, step: 4) {
-                LabeledValue("Высота раскрытого", store.theme.geometry.expandedSize.height, unit: "pt")
+                Text("Высота раскрытого: \(Int(store.theme.geometry.expandedSize.height)) pt")
             }
         }
 
         Section("Скругления") {
-            SliderRow("Верхние углы", store.binding(\.geometry.topRadius), range: 0...24)
-            SliderRow("Нижние в покое", store.binding(\.geometry.bottomRadiusClosed), range: 0...24)
-            SliderRow("Нижние раскрытого", store.binding(\.geometry.bottomRadiusOpen), range: 0...40)
-            SliderRow("Обложка", store.binding(\.geometry.artworkRadius), range: 0...16)
+            LabeledContent {
+                Slider(value: store.binding(\.geometry.topRadius).double, in: 0...24)
+            } label: {
+                Text("Верхние углы")
+                Text(String(format: "%.0f pt", Double(store.theme.geometry.topRadius)))
+            }
+            LabeledContent {
+                Slider(value: store.binding(\.geometry.bottomRadiusClosed).double, in: 0...24)
+            } label: {
+                Text("Нижние в покое")
+                Text(String(format: "%.0f pt", Double(store.theme.geometry.bottomRadiusClosed)))
+            }
+            LabeledContent {
+                Slider(value: store.binding(\.geometry.bottomRadiusOpen).double, in: 0...40)
+            } label: {
+                Text("Нижние раскрытого")
+                Text(String(format: "%.0f pt", Double(store.theme.geometry.bottomRadiusOpen)))
+            }
+            LabeledContent {
+                Slider(value: store.binding(\.geometry.artworkRadius).double, in: 0...16)
+            } label: {
+                Text("Обложка")
+                Text(String(format: "%.0f pt", Double(store.theme.geometry.artworkRadius)))
+            }
         }
 
         Section {
@@ -131,7 +150,12 @@ private struct AppearanceSection: View {
             ColorPicker("Название", selection: store.colorBinding(\.palette.primaryText))
             ColorPicker("Исполнитель и время", selection: store.colorBinding(\.palette.secondaryText))
             ColorPicker("Кромка", selection: store.colorBinding(\.palette.rimLight))
-            SliderRow("Толщина кромки", store.binding(\.palette.rimWidth), range: 0...2, format: "%.1f")
+            LabeledContent {
+                Slider(value: store.binding(\.palette.rimWidth).double, in: 0...2)
+            } label: {
+                Text("Толщина кромки")
+                Text(String(format: "%.1f", Double(store.theme.palette.rimWidth)))
+            }
         } header: {
             Text("Цвета")
         } footer: {
@@ -178,14 +202,29 @@ private struct GlassSection: View {
         }
 
         Section("Переход") {
-            SliderRow("Где чёрный начинает уходить", store.binding(\.geometry.glassFadeStart), range: 0...1, format: "%.2f")
-            SliderRow("Где кончается", store.binding(\.geometry.glassFadeEnd), range: 0...1, format: "%.2f")
+            LabeledContent {
+                Slider(value: store.binding(\.geometry.glassFadeStart).double, in: 0...1)
+            } label: {
+                Text("Где чёрный начинает уходить")
+                Text(String(format: "%.2f", Double(store.theme.geometry.glassFadeStart)))
+            }
+            LabeledContent {
+                Slider(value: store.binding(\.geometry.glassFadeEnd).double, in: 0...1)
+            } label: {
+                Text("Где кончается")
+                Text(String(format: "%.2f", Double(store.theme.geometry.glassFadeEnd)))
+            }
         }
 
         Section {
             Toggle("Забирать фокус для стекла", isOn: store.binding(\.palette.activateForGlass))
             Toggle("Возвращать сразу", isOn: store.binding(\.palette.releaseKeyAfterGlass))
-            SliderRow("Через сколько вернуть", store.binding(\.palette.releaseKeyDelay), range: 0.05...1, format: "%.2f с")
+            LabeledContent {
+                Slider(value: store.binding(\.palette.releaseKeyDelay).double, in: 0.05...1)
+            } label: {
+                Text("Через сколько вернуть")
+                Text(String(format: "%.2f с", Double(store.theme.palette.releaseKeyDelay)))
+            }
         } header: {
             Text("Фокус")
         } footer: {
@@ -201,8 +240,18 @@ private struct MotionSection: View {
 
     var body: some View {
         Section {
-            SliderRow("Отклик", store.binding(\.motion.openResponse), range: 0.1...1, format: "%.2f с")
-            SliderRow("Демпфирование", store.binding(\.motion.openDamping), range: 0.4...1, format: "%.2f")
+            LabeledContent {
+                Slider(value: store.binding(\.motion.openResponse).double, in: 0.1...1)
+            } label: {
+                Text("Отклик")
+                Text(String(format: "%.2f с", Double(store.theme.motion.openResponse)))
+            }
+            LabeledContent {
+                Slider(value: store.binding(\.motion.openDamping).double, in: 0.4...1)
+            } label: {
+                Text("Демпфирование")
+                Text(String(format: "%.2f", Double(store.theme.motion.openDamping)))
+            }
             SpringCurve(response: store.theme.motion.openResponse, damping: store.theme.motion.openDamping)
         } header: {
             Text("Раскрытие")
@@ -211,14 +260,34 @@ private struct MotionSection: View {
         }
 
         Section("Сворачивание") {
-            SliderRow("Отклик", store.binding(\.motion.closeResponse), range: 0.1...1, format: "%.2f с")
-            SliderRow("Демпфирование", store.binding(\.motion.closeDamping), range: 0.4...1, format: "%.2f")
+            LabeledContent {
+                Slider(value: store.binding(\.motion.closeResponse).double, in: 0.1...1)
+            } label: {
+                Text("Отклик")
+                Text(String(format: "%.2f с", Double(store.theme.motion.closeResponse)))
+            }
+            LabeledContent {
+                Slider(value: store.binding(\.motion.closeDamping).double, in: 0.4...1)
+            } label: {
+                Text("Демпфирование")
+                Text(String(format: "%.2f", Double(store.theme.motion.closeDamping)))
+            }
             SpringCurve(response: store.theme.motion.closeResponse, damping: store.theme.motion.closeDamping)
         }
 
         Section("Содержимое") {
-            SliderRow("Отклик", store.binding(\.motion.contentResponse), range: 0.1...1, format: "%.2f с")
-            SliderRow("Демпфирование", store.binding(\.motion.contentDamping), range: 0.4...1, format: "%.2f")
+            LabeledContent {
+                Slider(value: store.binding(\.motion.contentResponse).double, in: 0.1...1)
+            } label: {
+                Text("Отклик")
+                Text(String(format: "%.2f с", Double(store.theme.motion.contentResponse)))
+            }
+            LabeledContent {
+                Slider(value: store.binding(\.motion.contentDamping).double, in: 0.4...1)
+            } label: {
+                Text("Демпфирование")
+                Text(String(format: "%.2f", Double(store.theme.motion.contentDamping)))
+            }
         }
     }
 }
@@ -233,9 +302,19 @@ private struct BehaviorSection: View {
             Toggle("Показывать трек при наведении", isOn: store.binding(\.behavior.hoverShowsMedia))
             Toggle("Раскрывать по наведению", isOn: store.binding(\.behavior.expandOnHover))
             if store.theme.behavior.expandOnHover {
-                SliderRow("Задержка раскрытия", store.binding(\.behavior.hoverOpenDelay), range: 0...2, format: "%.2f с")
+                LabeledContent {
+                Slider(value: store.binding(\.behavior.hoverOpenDelay).double, in: 0...2)
+            } label: {
+                Text("Задержка раскрытия")
+                Text(String(format: "%.2f с", Double(store.theme.behavior.hoverOpenDelay)))
             }
-            SliderRow("Задержка сворачивания", store.binding(\.behavior.hoverCloseDelay), range: 0...2, format: "%.2f с")
+            }
+            LabeledContent {
+                Slider(value: store.binding(\.behavior.hoverCloseDelay).double, in: 0...2)
+            } label: {
+                Text("Задержка сворачивания")
+                Text(String(format: "%.2f с", Double(store.theme.behavior.hoverCloseDelay)))
+            }
         } header: {
             Text("Наведение")
         } footer: {
@@ -250,7 +329,12 @@ private struct BehaviorSection: View {
                 Text("На всех").tag(IslandTheme.DisplayMode.all)
             }
             Toggle("Форма выреза без чёлки", isOn: store.binding(\.behavior.alwaysUseNotchShape))
-            SliderRow("Отступ от кромки", store.binding(\.geometry.floatingTopInset), range: 0...20)
+            LabeledContent {
+                Slider(value: store.binding(\.geometry.floatingTopInset).double, in: 0...20)
+            } label: {
+                Text("Отступ от кромки")
+                Text(String(format: "%.0f pt", Double(store.theme.geometry.floatingTopInset)))
+            }
         }
     }
 }
@@ -272,12 +356,17 @@ private struct HUDSection: View {
         }
 
         Section("Вид") {
-            SliderRow("Сколько висит", store.binding(\.behavior.hudDuration), range: 0.5...5, format: "%.1f с")
+            LabeledContent {
+                Slider(value: store.binding(\.behavior.hudDuration).double, in: 0.5...5)
+            } label: {
+                Text("Сколько висит")
+                Text(String(format: "%.1f с", Double(store.theme.behavior.hudDuration)))
+            }
             Stepper(value: store.sizeBinding(\.geometry.hudSize, axis: .width), in: 160...480, step: 4) {
-                LabeledValue("Ширина", store.theme.geometry.hudSize.width, unit: "pt")
+                Text("Ширина: \(Int(store.theme.geometry.hudSize.width)) pt")
             }
             Stepper(value: store.sizeBinding(\.geometry.hudSize, axis: .height), in: 20...60, step: 1) {
-                LabeledValue("Высота", store.theme.geometry.hudSize.height, unit: "pt")
+                Text("Высота: \(Int(store.theme.geometry.hudSize.height)) pt")
             }
         }
     }
@@ -316,79 +405,11 @@ private struct AboutSection: View {
                     .truncationMode(.middle)
             }
             Button("Открыть в редакторе") { NSWorkspace.shared.open(store.configURL) }
-            Button("Сбросить оформление", role: .destructive) { store.reset() }
+            Button("Сбросить оформление") { store.reset() }
         } header: {
             Text("Файл темы")
         } footer: {
             Text("Файл читается на лету: правки в редакторе видны без перезапуска.")
-        }
-    }
-}
-
-// MARK: - Мелкие детали
-
-/// Строка со ползунком и значением справа — как в системных настройках.
-private struct SliderRow: View {
-    let title: String
-    let value: Binding<CGFloat>
-    let range: ClosedRange<Double>
-    var format: String = "%.0f"
-
-    init(_ title: String, _ value: Binding<CGFloat>, range: ClosedRange<Double>, format: String = "%.0f") {
-        self.title = title
-        self.value = value
-        self.range = range
-        self.format = format
-    }
-
-    init(_ title: String, _ value: Binding<Double>, range: ClosedRange<Double>, format: String = "%.0f") {
-        self.title = title
-        self.value = Binding(
-            get: { CGFloat(value.wrappedValue) },
-            set: { value.wrappedValue = Double($0) }
-        )
-        self.range = range
-        self.format = format
-    }
-
-    var body: some View {
-        LabeledContent {
-            HStack(spacing: 10) {
-                Slider(
-                    value: Binding(
-                        get: { Double(value.wrappedValue) },
-                        set: { value.wrappedValue = CGFloat($0) }
-                    ),
-                    in: range
-                )
-                .frame(minWidth: 160)
-                Text(String(format: format, Double(value.wrappedValue)))
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .frame(width: 52, alignment: .trailing)
-            }
-        } label: {
-            Text(title)
-        }
-    }
-}
-
-private struct LabeledValue: View {
-    let title: String
-    let value: CGFloat
-    let unit: String
-
-    init(_ title: String, _ value: CGFloat, unit: String) {
-        self.title = title
-        self.value = value
-        self.unit = unit
-    }
-
-    var body: some View {
-        LabeledContent(title) {
-            Text("\(Int(value)) \(unit)")
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
         }
     }
 }

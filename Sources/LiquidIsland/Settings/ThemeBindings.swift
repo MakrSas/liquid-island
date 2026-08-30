@@ -82,3 +82,17 @@ extension CodableColor {
         )
     }
 }
+
+extension Binding where Value == CGFloat {
+    /// Ползунки работают с Double, а размеры в теме — CGFloat.
+    var double: Binding<Double> {
+        Binding<Double>(
+            get: { Double(wrappedValue) },
+            set: { wrappedValue = CGFloat($0) }
+        )
+    }
+}
+
+extension Binding where Value == Double {
+    var double: Binding<Double> { self }
+}
