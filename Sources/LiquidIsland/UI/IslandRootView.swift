@@ -1,10 +1,25 @@
 import SwiftUI
 
+/// Ключ, которым остров сообщает наружу свой сегодняшний кадр.
+///
+/// SwiftUI пересчитывает его на каждом кадре анимации, и стекло, живущее в
+/// AppKit, может идти с островом строго нога в ногу. Собственная анимация у
+/// стекла всегда будет лишь приблизительно похожа на пружину SwiftUI — отсюда
+/// и рассинхрон, который видно как рывок.
+struct IslandFrameKey: PreferenceKey {
+    static let defaultValue = CGRect.zero
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        value = nextValue()
+    }
+}
+
 struct IslandRootView: View {
     @ObservedObject var state: IslandState
     @ObservedObject var media: MediaHub
     @ObservedObject var themeStore: ThemeStore = .shared
     @ObservedObject var audio: AudioLevels
+    /// Вызывается на каждом кадре анимации с текущим кадром острова.
+    var onFrameChange: (CGRect) -> Void = { _ in }
 
     private var theme: IslandTheme { themeStore.theme }
     private var size: CGSize { state.size }

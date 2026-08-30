@@ -12,6 +12,7 @@ final class IslandController {
     private let host: IslandHostingView<AnyView>
     private var glassView: IslandGlassView?
     private weak var glassContainer: NSView?
+    private var frameBox: FrameBox?
     private var bag = Set<AnyCancellable>()
     private var globalMonitor: Any?
     private var localMonitor: Any?
@@ -34,13 +35,16 @@ final class IslandController {
         container.autoresizingMask = [.width, .height]
         self.glassContainer = container
 
-        let root = IslandRootView(
+        var root = IslandRootView(
             state: state,
             media: media,
             themeStore: themeStore,
             audio: media.levels
         )
+        let box = FrameBox()
+        root.onFrameChange = { [box] frame in box.handler?(frame) }
         host = IslandHostingView(rootView: AnyView(root))
+        self.frameBox = box
         host.frame = CGRect(origin: .zero, size: frame.size)
         host.autoresizingMask = [.width, .height]
         container.addSubview(host)
@@ -69,6 +73,11 @@ final class IslandController {
             .sink { [weak self] theme in self?.applyTheme(theme) }
             .store(in: &bag)
 
+        // Стекло следует за островом кадр в кадр: своя анимация всегда лишь
+        // приблизительно похожа на пружину SwiftUI, и рассинхрон видно рывком.
+        frameBox?.handler = { [weak self] frame in
+            self?.positionGlass(islandFrameInHost: frame)
+        }
         installMouseMonitors()
         syncMouseRegion()
         layoutGlass()
@@ -110,12 +119,10 @@ final class IslandController {
         if let content = panel.contentView { walk(content, depth: 1) }
     }
 
-    /// Кладём стекло ровно под остров и только пока он раскрыт.
+    /// Создаёт или убирает слой стекла. Положение задаёт `positionGlass`.
     ///
     /// Стекло не прячется, а создаётся и уничтожается: композицию гасит
     /// оконный сервер, и скрытая вьюха оставляет эффект висеть на экране.
-    /// Кадр при раскрытии анимируется — иначе стекло появляется сразу во всю
-    /// величину, пока сам остров ещё только растёт.
     private func layoutGlass() {
         let theme = state.theme
         guard theme.palette.useLiquidGlass, state.phase == .expanded else {
@@ -123,57 +130,35 @@ final class IslandController {
             glassView = nil
             return
         }
+        guard glassView == nil else { return }
 
-        let target = glassFrame(for: state.size)
-
-        if let glass = glassView {
-            animateGlass(glass, to: target)
-        } else {
-            let start = glassFrame(for: state.restingSize)
-            let fresh = IslandGlassView(frame: start)
-            fresh.configure(
-                cornerRadius: theme.geometry.bottomRadiusOpen,
-                isClear: theme.palette.glassStyle == .clear,
-                tint: theme.palette.glassTint?.nsColor,
-                isInteractive: theme.palette.glassInteractive
-            )
-            // Добавляем со снятыми неявными анимациями: иначе слой стартует
-            // из нуля и стекло влетает сбоку вместо роста из центра.
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
-            glassContainer?.addSubview(fresh, positioned: .below, relativeTo: host)
-            fresh.frame = start
-            fresh.layoutSubtreeIfNeeded()
-            CATransaction.commit()
-            glassView = fresh
-
-            // Догоняем рост острова уже следующим тактом, когда кадр зафиксирован.
-            DispatchQueue.main.async { [weak self] in
-                guard let self, self.glassView === fresh else { return }
-                self.animateGlass(fresh, to: target)
-            }
-        }
-    }
-
-    /// Кадр стекла в координатах контейнера. AppKit считает снизу, остров
-    /// прижат к верхней кромке.
-    private func glassFrame(for size: CGSize) -> CGRect {
-        let bounds = host.bounds
-        return CGRect(
-            x: bounds.midX - size.width / 2,
-            y: bounds.maxY - size.height - state.theme.geometry.floatingTopInset,
-            width: size.width,
-            height: size.height
+        let fresh = IslandGlassView(frame: .zero)
+        fresh.configure(
+            cornerRadius: theme.geometry.bottomRadiusOpen,
+            isClear: theme.palette.glassStyle == .clear,
+            tint: theme.palette.glassTint?.nsColor,
+            isInteractive: theme.palette.glassInteractive
         )
+        glassContainer?.addSubview(fresh, positioned: .below, relativeTo: host)
+        glassView = fresh
     }
 
-    private func animateGlass(_ glass: NSView, to frame: CGRect) {
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = state.theme.motion.openResponse
-            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            context.allowsImplicitAnimation = true
-            glass.animator().frame = frame
-        }
+    /// Ставит стекло точно под остров. Кадр приходит из SwiftUI на каждом
+    /// шаге анимации, поэтому собственная анимация здесь не нужна — и вредна:
+    /// она бы догоняла уже посчитанное положение.
+    private func positionGlass(islandFrameInHost rect: CGRect) {
+        guard let glassView, rect.width > 0, rect.height > 0 else { return }
+        // SwiftUI считает сверху вниз, AppKit — снизу вверх.
+        let converted = CGRect(
+            x: rect.minX,
+            y: host.bounds.height - rect.maxY,
+            width: rect.width,
+            height: rect.height
+        )
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        glassView.frame = converted
+        CATransaction.commit()
     }
 
     // MARK: - Мышь
