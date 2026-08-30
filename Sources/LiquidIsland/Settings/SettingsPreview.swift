@@ -39,27 +39,23 @@ struct SettingsPreview: View {
     }
 
     var body: some View {
-        // Остров прижат к верхней кромке — как на настоящем экране.
         ZStack(alignment: .top) {
-            Wallpaper()
-
-            ZStack(alignment: .top) {
-                // Стекло под островом — то же, что рисует система в
-                // раскрытом виде. В превью оно уместно: окно ключевое.
-                if #available(macOS 26.0, *), phase == .expanded, theme.palette.useLiquidGlass {
-                    Color.clear
-                        .frame(width: size.width, height: size.height)
-                        .glassEffect(glass, in: island.shape)
-                }
-                island
+            // Стекло под островом — то же, что рисует система в раскрытом
+            // виде. В превью оно уместно: окно ключевое.
+            if #available(macOS 26.0, *), phase == .expanded, theme.palette.useLiquidGlass {
+                Color.clear
+                    .frame(width: size.width, height: size.height)
+                    .glassEffect(glass, in: island.shape)
             }
-            .frame(width: size.width, height: size.height, alignment: .top)
-            .fixedSize()
+            island
         }
-        .frame(maxWidth: .infinity)
-        // Высота с запасом: раскрытый остров должен помещаться целиком,
-        // а под ним оставаться видимая полоса обоев.
+        .frame(maxWidth: .infinity, alignment: .top)
+        // Высота с запасом: раскрытый остров помещается целиком, под ним
+        // остаётся видимая полоса обоев.
         .frame(height: theme.geometry.expandedSize.height + 56)
+        // Обои именно фоном: как участник разметки картинка задаёт размер
+        // контейнера и выталкивает остров за видимую область.
+        .background { Wallpaper() }
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         .animation(theme.motion.open, value: phase)
     }
