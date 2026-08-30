@@ -80,6 +80,9 @@ final class IslandController {
         frameBox?.handler = { [weak self] frame in
             guard let self else { return }
             self.lastIslandFrame = frame
+            if ProcessInfo.processInfo.environment["LIQUID_ISLAND_DEBUG"] == "1" {
+                print("кадр острова: \(frame)  host=\(self.host.bounds.size)")
+            }
             self.positionGlass(islandFrameInHost: frame)
         }
         installMouseMonitors()
@@ -166,6 +169,9 @@ final class IslandController {
         CATransaction.setDisableActions(true)
         glassView.frame = converted
         CATransaction.commit()
+        if ProcessInfo.processInfo.environment["LIQUID_ISLAND_DEBUG"] == "1" {
+            print("стекло -> \(converted) hidden=\(glassView.isHidden) super=\(glassView.superview != nil)")
+        }
     }
 
     // MARK: - Мышь

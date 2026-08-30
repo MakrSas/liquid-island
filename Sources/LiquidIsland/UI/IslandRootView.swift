@@ -1,18 +1,5 @@
 import SwiftUI
 
-/// Ключ, которым остров сообщает наружу свой сегодняшний кадр.
-///
-/// SwiftUI пересчитывает его на каждом кадре анимации, и стекло, живущее в
-/// AppKit, может идти с островом строго нога в ногу. Собственная анимация у
-/// стекла всегда будет лишь приблизительно похожа на пружину SwiftUI — отсюда
-/// и рассинхрон, который видно как рывок.
-struct IslandFrameKey: PreferenceKey {
-    static let defaultValue = CGRect.zero
-    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
-        value = nextValue()
-    }
-}
-
 struct IslandRootView: View {
     @ObservedObject var state: IslandState
     @ObservedObject var media: MediaHub
@@ -32,6 +19,10 @@ struct IslandRootView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         // По умолчанию ноль: остров врастает в кромку экрана, а не висит под ней.
         .padding(.top, theme.geometry.floatingTopInset)
+    }
+
+    private func reportFrame(_ frame: CGRect) {
+        onFrameChange(frame)
     }
 
     private var shape: IslandShape {
@@ -73,6 +64,23 @@ struct IslandRootView: View {
                 .clipped()
         }
         .frame(width: size.width, height: size.height)
+        // Стекло живёт в AppKit и должно идти за островом кадр в кадр.
+        // SwiftUI пересчитывает это значение на каждом шаге пружины.
+        .background(
+            GeometryReader { proxy in
+                // Преференсы из background наружу не выходят, поэтому берём
+                // кадр прямо здесь: onChange пересчитывается на каждом
+                // проходе разметки, то есть на каждом шаге анимации.
+                let frame = proxy.frame(in: .global)
+                Color.clear
+                    .onAppear { reportFrame(frame) }
+                    .onChange(of: frame) { _, new in reportFrame(new) }
+            }
+        )
+        .shadow(
+            color: .black.opacity(state.phase == .expanded ? 0.4 : 0),
+            radius: 18, x: 0, y: 8
+        )
         .contentShape(shape)
         // Наведение отслеживает IslandController: окно почти всё время
         // сквозное, и SwiftUI о движениях мыши просто не узнаёт.
