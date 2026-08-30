@@ -82,7 +82,7 @@ struct IslandRootView: View {
                     levels: audio.bands,
                     showsArtist: state.phase == .hovered
                 )
-                .transition(.blurFade(radius: 6))
+                .transition(.softFade())
                 // Свайп по тачпаду уводит карточку вбок.
                 .offset(x: state.swipeOffset)
                 .opacity(state.swipeFade)
@@ -92,7 +92,7 @@ struct IslandRootView: View {
             }
         case .expanded:
             ExpandedMediaView(media: media, theme: theme, levels: audio.bands)
-                .transition(.blurFade(radius: 10))
+                .transition(.softFade(scale: 0.97, offsetY: -6))
         }
     }
 }
@@ -124,7 +124,7 @@ struct CompactMediaView: View {
                 cornerRadius: artworkRadius
             )
             .id(track.title)
-            .transition(.blurFade(radius: 10, scale: 0.7))
+            .transition(.softFade(scale: 0.7, offsetY: 0))
             .animation(theme.motion.content, value: track.title)
             VStack(alignment: .leading, spacing: 1) {
                 Text(track.title.isEmpty ? "Ничего не играет" : track.title)
@@ -132,14 +132,14 @@ struct CompactMediaView: View {
                     .foregroundStyle(theme.palette.primaryText.color)
                     .lineLimit(1)
                     .id(track.title)
-                    .transition(.blurFade(radius: 6))
+                    .transition(.softFade(scale: 0.9, offsetY: 0))
                 if showsArtist, !track.artist.isEmpty {
                     Text(track.artist)
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(theme.palette.secondaryText.color)
                         .lineLimit(1)
                         .id(track.artist)
-                        .transition(.blurFade(radius: 6))
+                        .transition(.softFade(scale: 0.9, offsetY: 0))
                 }
             }
             .animation(theme.motion.content, value: track.title)

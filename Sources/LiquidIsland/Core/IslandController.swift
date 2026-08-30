@@ -11,6 +11,7 @@ final class IslandController {
     private let panel: IslandPanel
     private let host: IslandHostingView<AnyView>
     private var glassView: IslandGlassView?
+    private weak var glassContainer: NSView?
     private var bag = Set<AnyCancellable>()
     private var globalMonitor: Any?
     private var localMonitor: Any?
@@ -31,10 +32,7 @@ final class IslandController {
         // сами, иначе оконный сервер рисует его прямоугольником во всю ширину.
         let container = NSView(frame: CGRect(origin: .zero, size: frame.size))
         container.autoresizingMask = [.width, .height]
-        let glass = IslandGlassView(frame: .zero)
-        glass.isHidden = true
-        container.addSubview(glass)
-        self.glassView = glass
+        self.glassContainer = container
 
         let root = IslandRootView(
             state: state,
@@ -55,8 +53,14 @@ final class IslandController {
         state.$phase
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
-                self?.syncMouseRegion()
-                self?.layoutGlass()
+                guard let self else { return }
+                self.syncMouseRegion()
+                self.layoutGlass()
+                // Остров уменьшился — заставляем окно перерисовать всё,
+                // иначе в прозрачной панели остаются несвежие пиксели.
+                self.host.needsDisplay = true
+                self.panel.viewsNeedDisplay = true
+                self.panel.displayIfNeeded()
             }
             .store(in: &bag)
 
@@ -94,31 +98,54 @@ final class IslandController {
         layoutGlass()
     }
 
-    /// Кладём стекло ровно под остров и показываем только в раскрытом виде.
+    /// Печатает, что на самом деле лежит в окне: AppKit на macOS 26 умеет
+    /// подкладывать окнам собственный фон, и его легко принять за свой.
+    func dumpHierarchy() {
+        print("panel: frame=\(panel.frame) opaque=\(panel.isOpaque) bg=\(panel.backgroundColor) shadow=\(panel.hasShadow)")
+        func walk(_ view: NSView, depth: Int) {
+            let pad = String(repeating: "  ", count: depth)
+            print("\(pad)\(type(of: view)) frame=\(view.frame) hidden=\(view.isHidden) alpha=\(view.alphaValue)")
+            for sub in view.subviews { walk(sub, depth: depth + 1) }
+        }
+        if let content = panel.contentView { walk(content, depth: 1) }
+    }
+
+    /// Кладём стекло ровно под остров и только пока он раскрыт.
+    ///
+    /// Стекло не прячется, а создаётся и уничтожается: композицию гасит
+    /// оконный сервер, и скрытая вьюха оставляет эффект висеть на экране
+    /// ещё некоторое время после сворачивания.
     private func layoutGlass() {
-        guard let glassView else { return }
         let theme = state.theme
         guard theme.palette.useLiquidGlass, state.phase == .expanded else {
-            glassView.isHidden = true
+            glassView?.removeFromSuperview()
+            glassView = nil
             return
         }
 
         let size = state.size
         let bounds = host.bounds
         // Координаты AppKit считаются снизу, остров прижат к верхней кромке.
-        glassView.frame = CGRect(
+        let frame = CGRect(
             x: bounds.midX - size.width / 2,
             y: bounds.maxY - size.height - theme.geometry.floatingTopInset,
             width: size.width,
             height: size.height
         )
-        glassView.configure(
+
+        let glass = glassView ?? {
+            let fresh = IslandGlassView(frame: frame)
+            glassContainer?.addSubview(fresh, positioned: .below, relativeTo: host)
+            glassView = fresh
+            return fresh
+        }()
+        glass.frame = frame
+        glass.configure(
             cornerRadius: theme.geometry.bottomRadiusOpen,
             isClear: theme.palette.glassStyle == .clear,
             tint: theme.palette.glassTint?.nsColor,
             isInteractive: theme.palette.glassInteractive
         )
-        glassView.isHidden = false
     }
 
     // MARK: - Мышь
@@ -201,6 +228,8 @@ final class IslandController {
     }
 
     func close() {
+        glassView?.removeFromSuperview()
+        glassView = nil
         let monitors = [globalMonitor, localMonitor, clickMonitor, scrollMonitor, localScrollMonitor]
         for monitor in monitors.compactMap({ $0 }) {
             NSEvent.removeMonitor(monitor)

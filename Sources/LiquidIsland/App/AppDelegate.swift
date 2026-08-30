@@ -98,6 +98,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ))
         }
         print("islands: \(controllers.count)")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+            self?.controllers.values.first?.dumpHierarchy()
+        }
         let glassClass = NSClassFromString("NSGlassEffectView")
         print("NSGlassEffectView: \(glassClass.map { "\($0)" } ?? "нет в системе")")
         if #available(macOS 26.0, *) {
