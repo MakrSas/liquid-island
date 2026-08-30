@@ -16,6 +16,16 @@ enum LiquidIslandApp {
             return
         }
 
+        if args.contains("--glass-lab") {
+            let app = NSApplication.shared
+            app.setActivationPolicy(.regular)
+            let delegate = GlassLabDelegate()
+            app.delegate = delegate
+            objc_setAssociatedObject(app, "liquid.island.lab", delegate, .OBJC_ASSOCIATION_RETAIN)
+            app.run()
+            return
+        }
+
         let app = NSApplication.shared
         let delegate = AppDelegate()
         app.delegate = delegate
@@ -23,4 +33,14 @@ enum LiquidIslandApp {
         objc_setAssociatedObject(app, "liquid.island.delegate", delegate, .OBJC_ASSOCIATION_RETAIN)
         app.run()
     }
+}
+
+/// Поднимает только стенд стекла, без острова.
+@MainActor
+final class GlassLabDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        GlassLab.open()
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
 }

@@ -35,6 +35,15 @@ final class IslandPanel: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
     override var acceptsFirstResponder: Bool { false }
+
+    /// Панель выдаёт себя за активную, хотя фокус не берёт.
+    ///
+    /// `NSGlassEffectView` рисует настоящее жидкое стекло только в активном
+    /// окне: в неактивном оно вырождается в плоское размытие. Наша панель
+    /// ключевой не становится никогда, поэтому без этой подмены стекло
+    /// выглядело бы блюром при любых настройках.
+    override var isKeyWindow: Bool { true }
+    override var isMainWindow: Bool { true }
 }
 
 /// Хост-вью острова. Клики сквозь окно решаются не здесь, а переключением
