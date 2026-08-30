@@ -5,6 +5,7 @@ struct IslandRootView: View {
     @ObservedObject var media: MediaHub
     @ObservedObject var themeStore: ThemeStore = .shared
     @ObservedObject var audio: AudioLevels
+    @ObservedObject var hud: SystemHUD
     /// Вызывается на каждом кадре анимации с текущим размером острова.
     var onSizeChange: @Sendable (CGSize) -> Void = { _ in }
 
@@ -74,7 +75,11 @@ struct IslandRootView: View {
 
     @ViewBuilder
     private var content: some View {
-        if state.showsMediaCard || (state.phase == .expanded && state.hasMedia) {
+        if let event = state.hudEvent {
+            HUDView(event: event, theme: theme)
+                .padding(theme.geometry.compactPadding)
+                .transition(.softFade(scale: 0.9, offsetY: 0))
+        } else if state.showsMediaCard || (state.phase == .expanded && state.hasMedia) {
             IslandMediaView(
                 media: media,
                 theme: theme,

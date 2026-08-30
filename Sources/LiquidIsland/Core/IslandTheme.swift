@@ -18,6 +18,9 @@ struct IslandTheme: Codable, Equatable {
         /// Карточка трека в покое. Высота та же, что у пилюли: остров
         /// расширяется вбок, а не вниз.
         var compactSize: CGSize = CGSize(width: 304, height: 26)
+        /// Плашка системного события: громкость, яркость, зарядка.
+        var hudSize: CGSize = CGSize(width: 268, height: 30)
+
         /// Насколько остров подрастает при наведении — в основном вниз.
         var hoverPadding: CGSize = CGSize(width: 14, height: 24)
         /// Развёрнутая панель — только чёрная часть, без стеклянного подноса.
@@ -127,6 +130,13 @@ struct IslandTheme: Codable, Equatable {
         var hoverOpenDelay: Double = 0.45
         /// Задержка перед схлопыванием после ухода курсора.
         var hoverCloseDelay: Double = 0.35
+        /// Показывать плашки системных событий.
+        var showVolumeHUD: Bool = true
+        var showBrightnessHUD: Bool = true
+        var showPowerHUD: Bool = true
+        /// Сколько секунд висит плашка.
+        var hudDuration: Double = 1.6
+
         /// Показывать компактный вид при смене трека.
         var showLiveActivities: Bool = true
         /// Сколько секунд висит всплывающая активность.

@@ -6,15 +6,17 @@ import Combine
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let media = MediaHub()
     private let themeStore = ThemeStore.shared
+    private let hud = SystemHUD()
     private var controllers: [CGDirectDisplayID: IslandController] = [:]
-    private var statusItem: NSStatusItem?
     private var bag = Set<AnyCancellable>()
+    private var statusItem: NSStatusItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Приложение без Dock-иконки: остров — это и есть весь интерфейс.
         NSApp.setActivationPolicy(.accessory)
 
         media.start()
+        hud.start(duration: themeStore.theme.behavior.hudDuration)
         rebuildIslands()
         installStatusItem()
         if ProcessInfo.processInfo.environment["LIQUID_ISLAND_DEBUG"] == "1" { dumpDiagnostics() }
@@ -48,6 +50,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         media.stop()
+        hud.stop()
     }
 
     // MARK: - Экраны
@@ -79,7 +82,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if let existing = controllers[id] {
                 existing.refreshScreenMetrics()
             } else {
-                controllers[id] = IslandController(screen: screen, media: media, themeStore: themeStore)
+                let controller = IslandController(
+                    screen: screen,
+                    media: media,
+                    hud: hud,
+                    themeStore: themeStore
+                )
+                controller.menu = buildMenu()
+                controllers[id] = controller
             }
         }
     }
@@ -117,16 +127,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    // MARK: - Меню в статус-баре
+    // MARK: - Меню
 
+    /// Иконка в меню-баре: капсула — буквально форма самого острова.
     private func installStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         item.button?.image = NSImage(
-            systemSymbolName: "drop.fill",
+            systemSymbolName: "capsule.fill",
             accessibilityDescription: "LiquidIsland"
         )
         item.button?.image?.isTemplate = true
+        item.menu = buildMenu()
+        statusItem = item
+    }
 
+    /// То же меню открывается и правым кликом по самому острову.
+    func buildMenu() -> NSMenu {
         let menu = NSMenu()
         menu.addItem(withTitle: "LiquidIsland", action: nil, keyEquivalent: "")
         menu.addItem(.separator())
@@ -148,15 +164,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(reset)
 
         menu.addItem(.separator())
-        let quit = NSMenuItem(
+        menu.addItem(NSMenuItem(
             title: "Завершить",
             action: #selector(NSApplication.terminate(_:)),
             keyEquivalent: "q"
-        )
-        menu.addItem(quit)
-
-        item.menu = menu
-        statusItem = item
+        ))
+        return menu
     }
 
     @objc private func openConfig() {

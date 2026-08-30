@@ -19,6 +19,7 @@ final class IslandState: ObservableObject {
     @Published private(set) var swipeOffset: CGFloat = 0
 
     let media: MediaHub
+    let hud: SystemHUD
     private let themeStore: ThemeStore
     private var bag = Set<AnyCancellable>()
     private var hoverOpenWork: DispatchWorkItem?
@@ -26,10 +27,27 @@ final class IslandState: ObservableObject {
 
     var theme: IslandTheme { themeStore.theme }
 
-    init(metrics: NotchMetrics, media: MediaHub, themeStore: ThemeStore = .shared) {
+    init(
+        metrics: NotchMetrics,
+        media: MediaHub,
+        hud: SystemHUD,
+        themeStore: ThemeStore = .shared
+    ) {
         self.metrics = metrics
         self.media = media
+        self.hud = hud
         self.themeStore = themeStore
+
+        // Плашка системного события меняет размер острова так же, как трек.
+        hud.$event
+            .map { $0 != nil }
+            .removeDuplicates()
+            .dropFirst()
+            .sink { [weak self] _ in
+                guard let self else { return }
+                withAnimation(self.theme.motion.open) { self.objectWillChange.send() }
+            }
+            .store(in: &bag)
 
         // Появление или пропажа трека меняет размер острова в покое.
         media.$nowPlaying
@@ -68,8 +86,21 @@ final class IslandState: ObservableObject {
         }
     }
 
-    /// Размер в покое: карточка трека, если играет музыка, иначе узкая пилюля.
+    /// Показывать ли сейчас плашку системного события.
+    var hudEvent: SystemEvent? {
+        // В раскрытом виде плашка не нужна: пользователь уже смотрит в остров.
+        guard phase != .expanded else { return nil }
+        guard let event = hud.event else { return nil }
+        switch event {
+        case .volume: return theme.behavior.showVolumeHUD ? event : nil
+        case .brightness: return theme.behavior.showBrightnessHUD ? event : nil
+        case .power: return theme.behavior.showPowerHUD ? event : nil
+        }
+    }
+
+    /// Размер в покое: плашка события, карточка трека или узкая пилюля.
     var restingSize: CGSize {
+        if hudEvent != nil { return theme.geometry.hudSize }
         guard showsMediaCard else {
             return metrics.hasHardwareNotch ? metrics.closedSize : theme.geometry.closedSize
         }
@@ -114,7 +145,7 @@ final class IslandState: ObservableObject {
     var bottomRadius: CGFloat {
         switch phase {
         case .closed, .hovered:
-            return showsMediaCard
+            return hudEvent != nil || showsMediaCard
                 ? theme.geometry.bottomRadiusOpen
                 : theme.geometry.bottomRadiusClosed
         case .expanded:

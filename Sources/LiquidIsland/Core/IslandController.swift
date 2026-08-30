@@ -26,10 +26,20 @@ final class IslandController {
     private var localScrollMonitor: Any?
     private var mouseInside = false
 
-    init(screen: NSScreen, media: MediaHub, themeStore: ThemeStore = .shared) {
+    init(
+        screen: NSScreen,
+        media: MediaHub,
+        hud: SystemHUD,
+        themeStore: ThemeStore = .shared
+    ) {
         self.screen = screen
         let metrics = NotchMetrics.measure(for: screen)
-        self.state = IslandState(metrics: metrics, media: media, themeStore: themeStore)
+        self.state = IslandState(
+            metrics: metrics,
+            media: media,
+            hud: hud,
+            themeStore: themeStore
+        )
 
         let frame = IslandController.panelFrame(for: screen, theme: themeStore.theme)
         panel = IslandPanel(contentRect: frame)
@@ -44,7 +54,8 @@ final class IslandController {
             state: state,
             media: media,
             themeStore: themeStore,
-            audio: media.levels
+            audio: media.levels,
+            hud: hud
         )
         let box = FrameBox()
         root.onSizeChange = { [box] size in
@@ -294,6 +305,13 @@ final class IslandController {
         guard inside != mouseInside else { return }
         mouseInside = inside
         if inside { state.mouseEntered() } else { state.mouseExited() }
+    }
+
+    /// Меню по правому клику. В меню-баре иконки нет, это единственный вход
+    /// в настройки и выход из приложения.
+    var menu: NSMenu? {
+        get { host.menu }
+        set { host.menu = newValue }
     }
 
     func refreshScreenMetrics() {
