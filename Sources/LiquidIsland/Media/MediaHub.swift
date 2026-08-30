@@ -109,6 +109,19 @@ class MediaHub: ObservableObject {
         activeProviderName = "Preview"
     }
 
+    /// Переводит в приложение, откуда идёт звук.
+    ///
+    /// Bundle id известен не всегда: скриптуемые плееры называют себя сами,
+    /// источник, найденный по звуку, — тоже. Если его нет, идти некуда.
+    func revealSource() {
+        guard let bundleID = nowPlaying.sourceBundleID,
+              let app = NSRunningApplication
+                .runningApplications(withBundleIdentifier: bundleID)
+                .first
+        else { return }
+        app.activate(options: [.activateAllWindows])
+    }
+
     func send(_ command: MediaCommand) {
         let providers = self.providers
         queue.async {

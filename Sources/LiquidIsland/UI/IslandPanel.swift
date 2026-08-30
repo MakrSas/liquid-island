@@ -46,4 +46,11 @@ final class IslandPanel: NSPanel {
 /// Хост-вью острова. Клики сквозь окно решаются не здесь, а переключением
 /// `ignoresMouseEvents` у самой панели: так мимо острова проходит вообще всё,
 /// включая события, до которых hitTest не добирается.
-final class IslandHostingView<Content: View>: NSHostingView<Content> {}
+final class IslandHostingView<Content: View>: NSHostingView<Content> {
+    /// Первый клик должен сразу доходить до содержимого.
+    ///
+    /// По умолчанию щелчок по неключевому окну тратится на то, чтобы сделать
+    /// его ключевым, и до вью не доходит. Остров ключевым почти никогда не
+    /// бывает, поэтому без этого каждое первое нажатие пропадало.
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+}

@@ -188,6 +188,9 @@ struct TransportButton: View {
             Image(systemName: systemName)
                 .font(.system(size: size, weight: .medium))
                 .foregroundStyle(.white)
+                // Пауза и воспроизведение перетекают друг в друга, а не
+                // подменяются: у символов есть родной переход для этого.
+                .contentTransition(.symbolEffect(.replace.downUp))
                 .frame(width: size * 1.9, height: size * 1.9)
                 .contentShape(Rectangle())
         }

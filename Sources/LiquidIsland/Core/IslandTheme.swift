@@ -56,6 +56,8 @@ struct IslandTheme: Codable, Equatable {
     // MARK: - Цвета
 
     struct Palette: Codable, Equatable {
+        /// Цвет тела острова. Alpha меньше единицы делает остров
+        /// полупрозрачным во всех состояниях, не только в раскрытом.
         var background: CodableColor = CodableColor(white: 0, alpha: 1)
         var primaryText: CodableColor = CodableColor(white: 1, alpha: 1)
         var secondaryText: CodableColor = CodableColor(white: 1, alpha: 0.6)

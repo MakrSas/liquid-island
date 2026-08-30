@@ -57,18 +57,25 @@ struct IslandMediaView: View {
         .padding(padding)
     }
 
+    /// Есть ли куда переходить по клику.
+    private var canRevealSource: Bool { track.sourceBundleID != nil }
+
     // MARK: - Шапка
 
     private var header: some View {
         HStack(spacing: isExpanded ? 12 : 8) {
-            ArtworkView(image: track.artwork, size: artworkSize, cornerRadius: artworkRadius)
+            source {
+                ArtworkView(image: track.artwork, size: artworkSize, cornerRadius: artworkRadius)
+            }
 
             VStack(alignment: .leading, spacing: showsArtist ? 2 : 0) {
-                Text(track.title.isEmpty ? "Ничего не играет" : track.title)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(theme.palette.primaryText.color)
-                    .lineLimit(1)
-                    .scaleEffect(titleScale, anchor: .leading)
+                source {
+                    Text(track.title.isEmpty ? "Ничего не играет" : track.title)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(theme.palette.primaryText.color)
+                        .lineLimit(1)
+                        .scaleEffect(titleScale, anchor: .leading)
+                }
 
                 Text(track.artist)
                     .font(.system(size: 10, weight: .medium))
@@ -137,6 +144,21 @@ struct IslandMediaView: View {
         .allowsHitTesting(isExpanded && track.supportsTransport)
         .frame(height: isExpanded ? 36 : 0)
         .clipped()
+    }
+
+    /// Обложка и название ведут в приложение, откуда играет музыка.
+    /// Клик по острову раскрывает его, поэтому переход вешаем только там,
+    /// где есть куда идти, и гасим общий жест.
+    @ViewBuilder
+    private func source<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        if canRevealSource {
+            content()
+                .contentShape(Rectangle())
+                .onTapGesture { media.revealSource() }
+                .help("Перейти в приложение")
+        } else {
+            content()
+        }
     }
 
     private static func format(_ seconds: TimeInterval) -> String {
