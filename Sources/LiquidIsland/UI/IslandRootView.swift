@@ -35,6 +35,9 @@ struct IslandRootView: View {
             swipeOffset: state.swipeOffset,
             swipeFade: state.swipeFade
         )
+        // Слой стекла живёт в AppKit и берёт размер отсюда: Shape сообщает
+        // его на каждом кадре пружины, поэтому стекло идёт с островом в ногу.
+        .reportingAnimatedSize(size, to: onSizeChange)
         .shadow(
             color: .black.opacity(state.phase == .expanded ? 0.4 : 0),
             radius: 18, x: 0, y: 8

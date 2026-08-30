@@ -70,6 +70,25 @@ struct SettingsView: View {
         } detail: {
             detail
                 .navigationTitle(pane?.title ?? "Настройки")
+                .toolbar {
+                    if pane != .about {
+                        ToolbarItem(placement: .principal) {
+                            Picker("Состояние", selection: $previewPhase) {
+                                Image(systemName: "capsule")
+                                    .help("Покой")
+                                    .tag(IslandPhase.closed)
+                                Image(systemName: "cursorarrow")
+                                    .help("Наведение")
+                                    .tag(IslandPhase.hovered)
+                                Image(systemName: "rectangle.expand.vertical")
+                                    .help("Раскрытый")
+                                    .tag(IslandPhase.expanded)
+                            }
+                            .pickerStyle(.segmented)
+                            .labelsHidden()
+                        }
+                    }
+                }
         }
         .frame(minWidth: 720, minHeight: 560)
     }
@@ -78,22 +97,9 @@ struct SettingsView: View {
     private var detail: some View {
         Form {
             if pane != .about {
-                Section {
+                SwiftUI.Section {
                     SettingsPreview(store: store, phase: previewPhase)
                         .listRowInsets(EdgeInsets())
-                    Picker("Состояние", selection: $previewPhase) {
-                        Image(systemName: "capsule")
-                            .help("Покой")
-                            .tag(IslandPhase.closed)
-                        Image(systemName: "cursorarrow")
-                            .help("Наведение")
-                            .tag(IslandPhase.hovered)
-                        Image(systemName: "rectangle.expand.vertical")
-                            .help("Раскрытый")
-                            .tag(IslandPhase.expanded)
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
                 }
             }
 
