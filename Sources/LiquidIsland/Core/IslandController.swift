@@ -15,6 +15,8 @@ final class IslandController {
     private var frameBox: FrameBox?
     /// Последний кадр острова, присланный из SwiftUI.
     private var lastIslandFrame: CGRect = .zero
+    /// Кому вернуть фокус, когда остров свернётся.
+    private var previousApp: NSRunningApplication?
     private var bag = Set<AnyCancellable>()
     private var globalMonitor: Any?
     private var localMonitor: Any?
@@ -135,7 +137,18 @@ final class IslandController {
         guard theme.palette.useLiquidGlass, state.phase == .expanded else {
             glassView?.removeFromSuperview()
             glassView = nil
+            restorePreviousApp()
             return
+        }
+        if theme.palette.activateForGlass {
+            // Ключевой статус — обязательное условие для живого стекла.
+            // Запоминаем, кому вернуть фокус: прятать себя нельзя, hide
+            // убирает все окна приложения, вместе с самим островом.
+            if !NSApp.isActive {
+                previousApp = NSWorkspace.shared.frontmostApplication
+                NSApp.activate(ignoringOtherApps: true)
+            }
+            panel.makeKeyAndOrderFront(nil)
         }
         guard glassView == nil else { return }
 
@@ -151,6 +164,16 @@ final class IslandController {
         // Обновление кадра из SwiftUI могло прийти до создания слоя — тогда
         // он остался бы нулевого размера и стекла просто не было бы видно.
         positionGlass(islandFrameInHost: lastIslandFrame)
+    }
+
+    /// Возвращает фокус тому приложению, которое было впереди до раскрытия.
+    private func restorePreviousApp() {
+        guard let previousApp, NSApp.isActive else {
+            self.previousApp = nil
+            return
+        }
+        self.previousApp = nil
+        previousApp.activate()
     }
 
     /// Ставит стекло точно под остров. Кадр приходит из SwiftUI на каждом

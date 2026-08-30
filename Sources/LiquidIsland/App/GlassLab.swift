@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 
 /// Стенд для сравнения вариантов стекла.
 ///
@@ -64,9 +65,79 @@ enum GlassLab {
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         retained = window
+
+        openPanelSample(below: window)
     }
 
     private static var retained: NSWindow?
+
+    /// Бисекция: панели, отличающиеся от обычного окна ровно одним свойством.
+    /// Матовой станет та, чьё свойство и гасит стекло.
+    private static func openPanelSample(below window: NSWindow) {
+        guard #available(macOS 26.0, *) else { return }
+
+        let variants: [(String, (NSPanel) -> Void)] = [
+            ("панель, обычная\n(titled)", { _ in }),
+            ("+ borderless", { panel in
+                panel.styleMask = [.borderless]
+            }),
+            ("+ borderless\n+ nonactivating", { panel in
+                panel.styleMask = [.borderless, .nonactivatingPanel]
+            }),
+            ("+ уровень поверх\nменю-бара", { panel in
+                panel.styleMask = [.borderless, .nonactivatingPanel]
+                panel.level = .init(Int(CGWindowLevelForKey(.statusWindow)) + 2)
+            }),
+            ("всё, как у острова", { panel in
+                panel.styleMask = [.borderless, .nonactivatingPanel]
+                panel.level = .init(Int(CGWindowLevelForKey(.statusWindow)) + 2)
+                panel.isFloatingPanel = true
+                panel.hasShadow = false
+                panel.collectionBehavior = [
+                    .canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle
+                ]
+            })
+        ]
+
+        let width: CGFloat = 170
+        let gap: CGFloat = 14
+        let total = CGFloat(variants.count) * width + CGFloat(variants.count - 1) * gap
+        var x = window.frame.midX - total / 2
+
+        for (title, configure) in variants {
+            let frame = NSRect(x: x, y: window.frame.minY - 190, width: width, height: 150)
+            let panel = NSPanel(
+                contentRect: frame,
+                styleMask: [.titled],
+                backing: .buffered,
+                defer: false
+            )
+            panel.isOpaque = false
+            panel.backgroundColor = .clear
+            configure(panel)
+
+            let root = NSView(frame: CGRect(origin: .zero, size: frame.size))
+            root.autoresizingMask = [.width, .height]
+            panel.contentView = root
+
+            let sample = glass(style: .clear, radius: 20, filled: true)
+            sample.frame = NSRect(x: 8, y: 44, width: width - 16, height: 96)
+            root.addSubview(sample)
+
+            let label = NSTextField(labelWithString: title)
+            label.frame = NSRect(x: 4, y: 4, width: width - 8, height: 34)
+            label.alignment = .center
+            label.font = .systemFont(ofSize: 10)
+            label.maximumNumberOfLines = 2
+            root.addSubview(label)
+
+            panel.orderFrontRegardless()
+            retainedPanels.append(panel)
+            x += width + gap
+        }
+    }
+
+    private static var retainedPanels: [NSPanel] = []
 
     @available(macOS 26.0, *)
     private static func glass(

@@ -25,8 +25,8 @@ struct IslandTheme: Codable, Equatable {
 
         /// Где по высоте раскрытого острова чёрный начинает уходить в стекло
         /// и где растворяется полностью. Доли высоты, сверху вниз.
-        var glassFadeStart: Double = 0.58
-        var glassFadeEnd: Double = 0.99
+        var glassFadeStart: Double = 0.46
+        var glassFadeEnd: Double = 0.76
 
 
         /// Радиус верхних углов (в режиме чёлки — «вывернутых» наружу).
@@ -73,6 +73,13 @@ struct IslandTheme: Codable, Equatable {
         var glassTint: CodableColor? = nil
         /// Отклик стекла на наведение и нажатие.
         var glassInteractive: Bool = true
+        /// Делать приложение активным, пока остров раскрыт.
+        ///
+        /// Полноценное жидкое стекло система рисует только активному
+        /// приложению; фоновому достаётся приглушённый вариант, и переставить
+        /// это снаружи нельзя — приватные поля вью в обоих случаях одинаковы.
+        /// Цена — на время раскрытия меняется меню-бар.
+        var activateForGlass: Bool = true
     }
 
     enum GlassStyle: String, Codable, CaseIterable {

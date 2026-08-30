@@ -1,4 +1,5 @@
 import AppKit
+import ObjectiveC.runtime
 
 /// Стекло острова, живущее в AppKit.
 ///
@@ -41,11 +42,36 @@ final class IslandGlassView: NSView {
         if #available(macOS 27.0, *) {
             glass.effectIsInteractive = isInteractive
         }
+        awaken(glass)
+    }
+
+    /// Возвращает стеклу «бодрое» состояние.
+    ///
+    /// AppKit приглушает стекло, когда окно перестаёт быть ключевым: по
+    /// `_windowChangedKeyState` выставляется `_subduedState`, и вместо
+    /// преломления остаётся плоское размытие. Наша панель ключевой не бывает
+    /// никогда, поэтому приглушение снимаем сами. Это единственный способ:
+    /// открытого управления этим состоянием класс не даёт.
+    private func awaken(_ view: NSView) {
+        let selector = NSSelectorFromString("set_subduedState:")
+        guard view.responds(to: selector) else { return }
+        typealias Setter = @convention(c) (NSObject, Selector, Int) -> Void
+        guard let method = class_getMethodImplementation(type(of: view), selector) else { return }
+        let setter = unsafeBitCast(method, to: Setter.self)
+        setter(view, selector, 0)
     }
 
     override func layout() {
         super.layout()
         glass?.frame = bounds
+        // AppKit приглушает стекло при каждой смене состояния окна,
+        // поэтому снимаем приглушение и здесь, а не только при настройке.
+        if let glass { awaken(glass) }
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if let glass { awaken(glass) }
     }
 
     /// Клики сквозь стекло проходят к острову.
