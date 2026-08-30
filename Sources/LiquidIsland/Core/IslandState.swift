@@ -17,6 +17,8 @@ final class IslandState: ObservableObject {
     @Published private(set) var isDismissed = false
     /// Сдвиг карточки во время свайпа, в точках.
     @Published private(set) var swipeOffset: CGFloat = 0
+    /// Отклик на нажатие: остров чуть подрастает и возвращается.
+    @Published private(set) var pressScale: CGFloat = 1
 
     let media: MediaHub
     let hud: SystemHUD
@@ -24,6 +26,7 @@ final class IslandState: ObservableObject {
     private var bag = Set<AnyCancellable>()
     private var hoverOpenWork: DispatchWorkItem?
     private var hoverCloseWork: DispatchWorkItem?
+    private var pressWork: DispatchWorkItem?
 
     var theme: IslandTheme { themeStore.theme }
 
@@ -188,9 +191,40 @@ final class IslandState: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + theme.behavior.hoverCloseDelay, execute: work)
     }
 
+    /// Есть ли что показывать в раскрытом виде.
+    var hasContent: Bool { hasMedia || hudEvent != nil }
+
+    /// Нажатие по острову.
+    ///
+    /// Разворачивать пустой остров незачем — там нечего показать. Вместо
+    /// этого он отвечает размером, как Dynamic Island на iPhone: чуть
+    /// подрастает под пальцем и возвращается.
+    func tap() {
+        guard hasContent || phase == .expanded else {
+            respondToTouch()
+            return
+        }
+        toggle()
+    }
+
     func toggle() {
         cancelHoverWork()
         transition(to: phase == .expanded ? .hovered : .expanded)
+    }
+
+    private func respondToTouch() {
+        pressWork?.cancel()
+        withAnimation(.spring(response: 0.18, dampingFraction: 0.7)) {
+            pressScale = 1.05
+        }
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                self.pressScale = 1
+            }
+        }
+        pressWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.13, execute: work)
     }
 
     /// Клик мимо острова — единственный способ его свернуть.

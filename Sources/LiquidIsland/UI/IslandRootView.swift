@@ -51,6 +51,7 @@ struct IslandRootView: View {
         )
         // Наведение отслеживает IslandController: окно почти всё время
         // сквозное, и SwiftUI о движениях мыши просто не узнаёт.
-        .onTapGesture { state.toggle() }
+        .scaleEffect(state.pressScale)
+        .onTapGesture { state.tap() }
     }
 }
