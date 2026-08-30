@@ -25,8 +25,8 @@ struct IslandTheme: Codable, Equatable {
 
         /// Где по высоте раскрытого острова чёрный начинает уходить в стекло
         /// и где растворяется полностью. Доли высоты, сверху вниз.
-        var glassFadeStart: Double = 0.20
-        var glassFadeEnd: Double = 0.62
+        var glassFadeStart: Double = 0.52
+        var glassFadeEnd: Double = 0.97
 
 
         /// Радиус верхних углов (в режиме чёлки — «вывернутых» наружу).

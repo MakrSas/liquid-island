@@ -4,8 +4,12 @@ import SwiftUI
 ///
 /// Само стекло сюда не входит — оно лежит отдельным слоем под SwiftUI и живёт
 /// в AppKit, потому что backdrop-эффект не подчиняется обрезке SwiftUI.
-/// Здесь только чёрный: сплошной в покое и растворяющийся книзу в раскрытом
-/// виде, чтобы стекло под ним проступило.
+///
+/// Слоя два, и оба существуют всегда. Нижний — чёрный, растворяющийся книзу:
+/// сквозь него проступает стекло. Верхний — сплошной чёрный, который в покое
+/// закрывает первый целиком и тает при раскрытии. Ветвления между двумя
+/// разными фонами здесь быть не должно: SwiftUI считает их разными вьюхами и
+/// делает перекрёстное затухание вместо перетекания.
 struct IslandBackground: View {
     let shape: IslandShape
     let theme: IslandTheme
@@ -13,25 +17,25 @@ struct IslandBackground: View {
     let glassReveal: Double
 
     var body: some View {
-        Group {
-            if theme.palette.useLiquidGlass && glassReveal > 0.5 {
-                shape.fill(
-                    LinearGradient(
-                        stops: [
-                            .init(color: theme.palette.background.color, location: 0),
-                            .init(
-                                color: theme.palette.background.color,
-                                location: theme.geometry.glassFadeStart
-                            ),
-                            .init(color: .clear, location: theme.geometry.glassFadeEnd)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
+        ZStack {
+            shape.fill(
+                LinearGradient(
+                    stops: [
+                        .init(color: theme.palette.background.color, location: 0),
+                        .init(
+                            color: theme.palette.background.color,
+                            location: theme.geometry.glassFadeStart
+                        ),
+                        .init(color: .clear, location: theme.geometry.glassFadeEnd)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
-            } else {
-                shape.fill(theme.palette.background.color)
-            }
+            )
+
+            shape
+                .fill(theme.palette.background.color)
+                .opacity(theme.palette.useLiquidGlass ? 1 - glassReveal : 1)
         }
         .allowsHitTesting(false)
     }
