@@ -100,6 +100,14 @@ struct CompactMediaView: View {
     /// Она появляется, когда остров подрастает под курсором.
     var showsArtist: Bool = false
 
+    /// Радиус обложки концентричен кромке острова: он меньше ровно на
+    /// величину поля вокруг, поэтому дуги идут параллельно и вложение
+    /// читается как одна деталь, а не две разные.
+    private var artworkRadius: CGFloat {
+        let inset = theme.geometry.compactPadding.top
+        return max(theme.geometry.bottomRadiusClosed - inset, 3)
+    }
+
     /// Цвет обложки, если его удалось вытянуть, иначе обычный белый.
     private var accentColor: Color {
         track.accent.map(Color.init) ?? theme.palette.primaryText.color.opacity(0.9)
@@ -110,7 +118,7 @@ struct CompactMediaView: View {
             ArtworkView(
                 image: track.artwork,
                 size: showsArtist ? 34 : 18,
-                cornerRadius: showsArtist ? 8 : 4
+                cornerRadius: artworkRadius
             )
             VStack(alignment: .leading, spacing: 1) {
                 Text(track.title.isEmpty ? "Ничего не играет" : track.title)

@@ -25,13 +25,20 @@ struct IslandTheme: Codable, Equatable {
 
         /// Где по высоте раскрытого острова чёрный начинает уходить в стекло
         /// и где растворяется полностью. Доли высоты, сверху вниз.
-        var glassFadeStart: Double = 0.42
-        var glassFadeEnd: Double = 0.98
+        var glassFadeStart: Double = 0.34
+        var glassFadeEnd: Double = 0.72
+        /// Отступ стекла от краёв острова. Своя кромка у стекла обязательна:
+        /// именно на ней живут преломление и блик, без них остаётся голый блюр.
+        /// Ноль — стекло во всю фигуру, и характер теряется.
+        var glassInset: CGFloat = 9
+        /// Какую долю высоты раскрытого острова занимает стекло.
+        var glassHeightFraction: Double = 0.52
+        var glassCornerRadius: CGFloat = 18
 
         /// Радиус верхних углов (в режиме чёлки — «вывернутых» наружу).
         var topRadius: CGFloat = 9
         /// Радиус нижних углов в покое.
-        var bottomRadiusClosed: CGFloat = 12
+        var bottomRadiusClosed: CGFloat = 11
         /// Радиус нижних углов, когда остров раскрыт.
         var bottomRadiusOpen: CGFloat = 15
 

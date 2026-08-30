@@ -24,6 +24,11 @@ struct LiquidGlassView: NSViewRepresentable {
             return fallback
         }
         let view = NSGlassEffectView()
+        // Без contentView стекло рисует одну лишь подложку и выглядит блюром:
+        // краевое преломление и блик считаются по содержимому.
+        let content = NSView()
+        content.wantsLayer = true
+        view.contentView = content
         apply(to: view)
         return view
     }
