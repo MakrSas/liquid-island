@@ -38,7 +38,7 @@ macOS 26, живущее по системным правилам прозрач
 
 ```bash
 ./Scripts/bundle.sh release
-open build/Liquid\ Island.app
+open build/LiquidIsland.app
 ```
 
 Приложение живёт в меню-баре под значком капсулы. Там же — настройки.
