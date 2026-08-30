@@ -25,8 +25,8 @@ struct IslandTheme: Codable, Equatable {
 
         /// Где по высоте раскрытого острова чёрный начинает уходить в стекло
         /// и где растворяется полностью. Доли высоты, сверху вниз.
-        var glassFadeStart: Double = 0.30
-        var glassFadeEnd: Double = 0.80
+        var glassFadeStart: Double = 0.20
+        var glassFadeEnd: Double = 0.62
 
 
         /// Радиус верхних углов (в режиме чёлки — «вывернутых» наружу).
@@ -65,8 +65,10 @@ struct IslandTheme: Codable, Equatable {
 
         /// Показывать ли стекло в нижней части раскрытого острова.
         var useLiquidGlass: Bool = true
-        /// Стиль нативного Liquid Glass.
-        var glassStyle: GlassStyle = .regular
+        /// Стиль нативного Liquid Glass. По умолчанию чистое стекло — таким
+        /// его показывает док. Матовым его делает системный ползунок
+        /// «Liquid Glass», а не мы.
+        var glassStyle: GlassStyle = .clear
         /// Подкраска стекла. Пусто — чистое системное стекло.
         var glassTint: CodableColor? = nil
         /// Отклик стекла на наведение и нажатие.

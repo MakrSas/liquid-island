@@ -7,6 +7,10 @@ import SwiftUI
 /// заголовок едет на новое место; строки прогресса и кнопок не вставляются
 /// в иерархию, а разворачиваются по высоте из нуля. Тогда SwiftUI
 /// интерполирует кадры, и остров перетекает, а не мигает.
+///
+/// Своей анимации здесь нет намеренно: движение ведёт та же пружина, что
+/// меняет размер острова. Вторая анимация поверх неё разводит кадр и
+/// содержимое по разным кривым, и переход рассыпается.
 struct IslandMediaView: View {
     @ObservedObject var media: MediaHub
     let theme: IslandTheme
@@ -51,7 +55,6 @@ struct IslandMediaView: View {
             transportRow
         }
         .padding(padding)
-        .animation(theme.motion.open, value: phase)
     }
 
     // MARK: - Шапка
