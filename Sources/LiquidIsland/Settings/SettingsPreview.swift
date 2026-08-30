@@ -40,9 +40,11 @@ struct SettingsPreview: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            // Стекло под островом — то же, что рисует система в раскрытом
-            // виде. В превью оно уместно: окно ключевое.
-            if #available(macOS 26.0, *), phase == .expanded, theme.palette.useLiquidGlass {
+            // Стекло лежит здесь всегда, а не появляется при раскрытии:
+            // вставка и удаление вью читаются затуханием, а не перетеканием.
+            // В покое его полностью закрывает чёрное тело острова — так же,
+            // как в настоящем острове.
+            if #available(macOS 26.0, *), theme.palette.useLiquidGlass {
                 Color.clear
                     .frame(width: size.width, height: size.height)
                     .glassEffect(glass, in: island.shape)
