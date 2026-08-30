@@ -98,6 +98,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ))
         }
         print("islands: \(controllers.count)")
+        let glassClass = NSClassFromString("NSGlassEffectView")
+        print("NSGlassEffectView: \(glassClass.map { "\($0)" } ?? "нет в системе")")
+        if #available(macOS 26.0, *) {
+            let probe = NSGlassEffectView()
+            print("создаётся: \(type(of: probe)), стиль по умолчанию \(probe.style.rawValue)")
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
             guard let self else { return }
             let np = self.media.nowPlaying
