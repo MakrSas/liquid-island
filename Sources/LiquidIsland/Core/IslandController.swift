@@ -10,6 +10,7 @@ final class IslandController {
 
     private let panel: IslandPanel
     private let host: IslandHostingView<AnyView>
+    private var glassView: IslandGlassView?
     private var bag = Set<AnyCancellable>()
     private var globalMonitor: Any?
     private var localMonitor: Any?
@@ -26,6 +27,15 @@ final class IslandController {
         let frame = IslandController.panelFrame(for: screen, theme: themeStore.theme)
         panel = IslandPanel(contentRect: frame)
 
+        // Стекло — отдельный слой под SwiftUI: его кадром и формой управляем
+        // сами, иначе оконный сервер рисует его прямоугольником во всю ширину.
+        let container = NSView(frame: CGRect(origin: .zero, size: frame.size))
+        container.autoresizingMask = [.width, .height]
+        let glass = IslandGlassView(frame: .zero)
+        glass.isHidden = true
+        container.addSubview(glass)
+        self.glassView = glass
+
         let root = IslandRootView(
             state: state,
             media: media,
@@ -35,7 +45,8 @@ final class IslandController {
         host = IslandHostingView(rootView: AnyView(root))
         host.frame = CGRect(origin: .zero, size: frame.size)
         host.autoresizingMask = [.width, .height]
-        panel.contentView = host
+        container.addSubview(host)
+        panel.contentView = container
 
         panel.setFrame(frame, display: false)
         panel.orderFrontRegardless()
@@ -43,7 +54,10 @@ final class IslandController {
         // Кликабельна только сама фигура острова, всё остальное — сквозное.
         state.$phase
             .receive(on: RunLoop.main)
-            .sink { [weak self] _ in self?.syncMouseRegion() }
+            .sink { [weak self] _ in
+                self?.syncMouseRegion()
+                self?.layoutGlass()
+            }
             .store(in: &bag)
 
         themeStore.themeChanged
@@ -53,6 +67,7 @@ final class IslandController {
 
         installMouseMonitors()
         syncMouseRegion()
+        layoutGlass()
     }
 
     /// Окно всегда размером с самое большое состояние — так анимация
@@ -76,6 +91,34 @@ final class IslandController {
         let frame = IslandController.panelFrame(for: screen, theme: theme)
         panel.setFrame(frame, display: true)
         syncMouseRegion()
+        layoutGlass()
+    }
+
+    /// Кладём стекло ровно под остров и показываем только в раскрытом виде.
+    private func layoutGlass() {
+        guard let glassView else { return }
+        let theme = state.theme
+        guard theme.palette.useLiquidGlass, state.phase == .expanded else {
+            glassView.isHidden = true
+            return
+        }
+
+        let size = state.size
+        let bounds = host.bounds
+        // Координаты AppKit считаются снизу, остров прижат к верхней кромке.
+        glassView.frame = CGRect(
+            x: bounds.midX - size.width / 2,
+            y: bounds.maxY - size.height - theme.geometry.floatingTopInset,
+            width: size.width,
+            height: size.height
+        )
+        glassView.configure(
+            cornerRadius: theme.geometry.bottomRadiusOpen,
+            isClear: theme.palette.glassStyle == .clear,
+            tint: theme.palette.glassTint?.nsColor,
+            isInteractive: theme.palette.glassInteractive
+        )
+        glassView.isHidden = false
     }
 
     // MARK: - Мышь

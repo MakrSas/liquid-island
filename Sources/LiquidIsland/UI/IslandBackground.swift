@@ -1,32 +1,20 @@
 import SwiftUI
 
-/// Подложка острова: чёрный верх, переходящий книзу в стекло.
+/// Подложка острова.
 ///
-/// Стекло занимает всю фигуру — никаких отступов, иначе по краям остаются
-/// чёрные рамки. Переход рисуется чёрным градиентом поверх: `mask` и `opacity`
-/// применять к стеклу нельзя, они заставляют SwiftUI отрисовать его в отдельный
-/// слой, и живая подложка теряется.
+/// Само стекло сюда не входит — оно лежит отдельным слоем под SwiftUI и живёт
+/// в AppKit, потому что backdrop-эффект не подчиняется обрезке SwiftUI.
+/// Здесь только чёрный: сплошной в покое и растворяющийся книзу в раскрытом
+/// виде, чтобы стекло под ним проступило.
 struct IslandBackground: View {
     let shape: IslandShape
     let theme: IslandTheme
-    /// 0 — сплошной чёрный, 1 — переход в стекло раскрыт полностью.
+    /// 0 — сплошной чёрный, 1 — низ раскрыт и стекло видно.
     let glassReveal: Double
 
-    private var showsGlass: Bool {
-        theme.palette.useLiquidGlass && glassReveal > 0.5
-    }
-
     var body: some View {
-        ZStack {
-            if showsGlass {
-                LiquidGlassView(
-                    cornerRadius: theme.geometry.bottomRadiusOpen,
-                    isClear: theme.palette.glassStyle == .clear,
-                    tint: theme.palette.glassTint?.nsColor,
-                    isInteractive: theme.palette.glassInteractive
-                )
-
-                // Чёрный сверху вниз растворяется, открывая стекло к низу.
+        Group {
+            if theme.palette.useLiquidGlass && glassReveal > 0.5 {
                 shape.fill(
                     LinearGradient(
                         stops: [
@@ -41,14 +29,10 @@ struct IslandBackground: View {
                         endPoint: .bottom
                     )
                 )
-                .allowsHitTesting(false)
             } else {
                 shape.fill(theme.palette.background.color)
             }
         }
-        .clipShape(shape)
-        // Стекло должно исчезать вместе с островом, а не растворяться следом:
-        // анимированное снятие оставляет висеть подложку на добрую секунду.
-        .transaction { $0.animation = nil }
+        .allowsHitTesting(false)
     }
 }
