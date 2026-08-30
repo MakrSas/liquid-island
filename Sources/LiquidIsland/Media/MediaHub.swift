@@ -21,7 +21,7 @@ class MediaHub: ObservableObject {
     private var polling = false
 
     init() {
-        providers = [MediaRemoteProvider(), ScriptingProvider()]
+        providers = [MediaRemoteProvider(), ScriptingProvider(), SystemAudioProvider()]
     }
 
     func start(interval: TimeInterval = 1.0) {

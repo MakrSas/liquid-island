@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// Все размеры, радиусы, цвета и пружины острова живут здесь.
 ///
@@ -47,18 +48,43 @@ struct IslandTheme: Codable, Equatable {
         var progressTrack: CodableColor = CodableColor(white: 1, alpha: 0.22)
         var progressFill: CodableColor = CodableColor(white: 1, alpha: 0.85)
         /// Мягкое свечение по краю раскрытого острова.
-        var rimLight: CodableColor = CodableColor(white: 1, alpha: 0.10)
+        var rimLight: CodableColor = CodableColor(white: 1, alpha: 0.22)
+        var rimWidth: CGFloat = 0.6
+
+        /// Стекло вместо плотной заливки.
+        var useGlass: Bool = true
+        /// Материал размытия под островом.
+        var glassMaterial: GlassMaterial = .hud
+        /// Насколько сильно притемняем размытие: 1 — почти чёрный остров,
+        /// 0 — чистое стекло.
+        var glassTint: Double = 0.72
+        /// Сила блика по верхней кромке.
+        var glassSheen: Double = 0.14
+    }
+
+    enum GlassMaterial: String, Codable, CaseIterable {
+        case hud, popover, sidebar, underWindow, menu
+
+        var nsMaterial: NSVisualEffectView.Material {
+            switch self {
+            case .hud: return .hudWindow
+            case .popover: return .popover
+            case .sidebar: return .sidebar
+            case .underWindow: return .underWindowBackground
+            case .menu: return .menu
+            }
+        }
     }
 
     // MARK: - Анимация
 
     struct Motion: Codable, Equatable {
-        var openResponse: Double = 0.38
-        var openDamping: Double = 0.72
-        var closeResponse: Double = 0.32
-        var closeDamping: Double = 0.85
-        var contentResponse: Double = 0.28
-        var contentDamping: Double = 0.82
+        var openResponse: Double = 0.34
+        var openDamping: Double = 0.95
+        var closeResponse: Double = 0.28
+        var closeDamping: Double = 1.0
+        var contentResponse: Double = 0.24
+        var contentDamping: Double = 1.0
 
         var open: Animation { .spring(response: openResponse, dampingFraction: openDamping) }
         var close: Animation { .spring(response: closeResponse, dampingFraction: closeDamping) }

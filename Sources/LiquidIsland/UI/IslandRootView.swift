@@ -18,22 +18,34 @@ struct IslandRootView: View {
         .padding(.top, theme.geometry.floatingTopInset)
     }
 
+    private var shape: IslandShape {
+        IslandShape(
+            style: state.shapeStyle,
+            topRadius: theme.geometry.topRadius,
+            bottomRadius: state.bottomRadius
+        )
+    }
+
+    /// Кромка стекла: сверху блик, снизу почти ничего — так объём читается
+    /// даже на чёрном.
+    private var rimGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                theme.palette.rimLight.color,
+                theme.palette.rimLight.color.opacity(0.15)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
     private var island: some View {
         ZStack {
-            IslandShape(
-                style: state.shapeStyle,
-                topRadius: theme.geometry.topRadius,
-                bottomRadius: state.bottomRadius
-            )
-            .fill(theme.palette.background.color)
+            IslandBackground(shape: shape, theme: theme)
             .overlay(
-                IslandShape(
-                    style: state.shapeStyle,
-                    topRadius: theme.geometry.topRadius,
-                    bottomRadius: state.bottomRadius
-                )
-                .strokeBorder(theme.palette.rimLight.color, lineWidth: 0.5)
-                .opacity(state.phase == .closed ? 0 : 1)
+                shape
+                    .strokeBorder(rimGradient, lineWidth: theme.palette.rimWidth)
+                    .opacity(state.showsMediaCard || state.phase != .closed ? 1 : 0)
             )
 
             content
@@ -48,13 +60,7 @@ struct IslandRootView: View {
             color: .black.opacity(state.phase == .expanded ? 0.45 : 0),
             radius: 22, x: 0, y: 10
         )
-        .contentShape(
-            IslandShape(
-                style: state.shapeStyle,
-                topRadius: theme.geometry.topRadius,
-                bottomRadius: state.bottomRadius
-            )
-        )
+        .contentShape(shape)
         // Наведение отслеживает IslandController: окно почти всё время
         // сквозное, и SwiftUI о движениях мыши просто не узнаёт.
         .onTapGesture { state.toggle() }
@@ -63,20 +69,13 @@ struct IslandRootView: View {
     @ViewBuilder
     private var content: some View {
         switch state.phase {
-        case .closed:
-            // В покое остров — просто чёрное пятно. На маках с чёлкой он от
-            // неё неотличим, и это ровно то, чего мы добиваемся.
-            Color.clear
-        case .hovered:
-            if theme.behavior.hoverShowsMedia && state.hasMedia {
+        case .closed, .hovered:
+            if state.showsMediaCard {
                 CompactMediaView(track: media.nowPlaying, theme: theme)
-                    .transition(.opacity)
             } else {
+                // Без музыки остров — просто чёрное пятно, неотличимое от выреза.
                 Color.clear
             }
-        case .activity:
-            CompactMediaView(track: state.activityPayload ?? media.nowPlaying, theme: theme)
-                .transition(.opacity)
         case .expanded:
             ExpandedMediaView(media: media, theme: theme)
                 .transition(.opacity)

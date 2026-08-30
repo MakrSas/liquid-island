@@ -6,7 +6,6 @@ import Combine
 enum IslandPhase: Equatable {
     case closed
     case hovered
-    case activity
     case expanded
 }
 
@@ -14,15 +13,12 @@ enum IslandPhase: Equatable {
 final class IslandState: ObservableObject {
     @Published var phase: IslandPhase = .closed
     @Published var metrics: NotchMetrics
-    /// Трек, который сейчас показывает всплывающая активность.
-    @Published var activityPayload: NowPlaying?
 
     let media: MediaHub
     private let themeStore: ThemeStore
     private var bag = Set<AnyCancellable>()
     private var hoverOpenWork: DispatchWorkItem?
     private var hoverCloseWork: DispatchWorkItem?
-    private var activityWork: DispatchWorkItem?
 
     var theme: IslandTheme { themeStore.theme }
 
@@ -31,15 +27,15 @@ final class IslandState: ObservableObject {
         self.media = media
         self.themeStore = themeStore
 
-        media.trackChanged
-            .sink { [weak self] track in self?.presentActivity(track) }
-            .store(in: &bag)
-
-        // Появление или пропажа трека меняет размер фазы наведения.
+        // Появление или пропажа трека меняет размер острова в покое.
         media.$nowPlaying
             .map(\.isEmpty)
             .removeDuplicates()
-            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .dropFirst()
+            .sink { [weak self] _ in
+                guard let self else { return }
+                withAnimation(self.theme.motion.open) { self.objectWillChange.send() }
+            }
             .store(in: &bag)
 
         themeStore.$theme
@@ -50,34 +46,43 @@ final class IslandState: ObservableObject {
     // MARK: - Размеры
 
     /// Размер острова в текущей фазе.
+    ///
+    /// Карточка с треком показывается постоянно и одного размера — наведение
+    /// только слегка её увеличивает, а не подменяет другим макетом.
     var size: CGSize {
         let g = theme.geometry
         switch phase {
         case .closed:
-            return metrics.hasHardwareNotch ? metrics.closedSize : g.closedSize
+            return restingSize
         case .hovered:
-            if theme.behavior.hoverShowsMedia && hasMedia { return g.compactSize }
-            let base = metrics.hasHardwareNotch ? metrics.closedSize : g.closedSize
             return CGSize(
-                width: base.width + g.hoverPadding.width,
-                height: base.height + g.hoverPadding.height
+                width: restingSize.width + g.hoverPadding.width,
+                height: restingSize.height + g.hoverPadding.height
             )
-        case .activity:
-            return g.compactSize
         case .expanded:
             return g.expandedSize
         }
     }
 
+    /// Размер в покое: карточка трека, если играет музыка, иначе узкая пилюля.
+    private var restingSize: CGSize {
+        guard showsMediaCard else {
+            return metrics.hasHardwareNotch ? metrics.closedSize : theme.geometry.closedSize
+        }
+        return theme.geometry.compactSize
+    }
+
+    /// Показываем ли карточку трека вместо пустой пилюли.
+    var showsMediaCard: Bool { theme.behavior.hoverShowsMedia && hasMedia }
+
     var bottomRadius: CGFloat {
         switch phase {
-        case .closed:
-            return theme.geometry.bottomRadiusClosed
-        case .hovered:
-            return (theme.behavior.hoverShowsMedia && hasMedia)
+        case .closed, .hovered:
+            return showsMediaCard
                 ? theme.geometry.bottomRadiusOpen
                 : theme.geometry.bottomRadiusClosed
-        case .activity, .expanded: return theme.geometry.bottomRadiusOpen
+        case .expanded:
+            return theme.geometry.bottomRadiusOpen
         }
     }
 
@@ -109,10 +114,7 @@ final class IslandState: ObservableObject {
 
     func mouseExited() {
         cancelHoverWork()
-        let work = DispatchWorkItem { [weak self] in
-            guard let self else { return }
-            self.transition(to: self.activityPayload == nil ? .closed : .activity)
-        }
+        let work = DispatchWorkItem { [weak self] in self?.transition(to: .closed) }
         hoverCloseWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + theme.behavior.hoverCloseDelay, execute: work)
     }
@@ -133,27 +135,4 @@ final class IslandState: ObservableObject {
         withAnimation(animation) { phase = next }
     }
 
-    // MARK: - Всплывающая активность
-
-    private func presentActivity(_ track: NowPlaying) {
-        guard theme.behavior.showLiveActivities else { return }
-        activityWork?.cancel()
-        withAnimation(theme.motion.open) {
-            activityPayload = track
-            if phase == .closed { phase = .activity }
-        }
-        let work = DispatchWorkItem { [weak self] in self?.dismissActivity() }
-        activityWork = work
-        DispatchQueue.main.asyncAfter(
-            deadline: .now() + theme.behavior.liveActivityDuration,
-            execute: work
-        )
-    }
-
-    private func dismissActivity() {
-        withAnimation(theme.motion.close) {
-            activityPayload = nil
-            if phase == .activity { phase = .closed }
-        }
-    }
 }

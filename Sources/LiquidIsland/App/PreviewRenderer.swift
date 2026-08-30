@@ -34,7 +34,18 @@ enum PreviewRenderer {
                     CompactMediaView(track: sample, theme: theme)
                 },
                 size: sizeFor(theme.geometry.compactSize),
-                to: directory.appendingPathComponent("activity-\(suffix).png")
+                to: directory.appendingPathComponent("card-\(suffix).png")
+            )
+            let hovered = CGSize(
+                width: theme.geometry.compactSize.width + theme.geometry.hoverPadding.width,
+                height: theme.geometry.compactSize.height + theme.geometry.hoverPadding.height
+            )
+            render(
+                view: shell(theme: theme, style: style, size: hovered) {
+                    CompactMediaView(track: sample, theme: theme)
+                },
+                size: sizeFor(hovered),
+                to: directory.appendingPathComponent("hovered-\(suffix).png")
             )
             render(
                 view: shell(theme: theme, style: style, size: theme.geometry.expandedSize) {
@@ -77,10 +88,25 @@ enum PreviewRenderer {
             )
             VStack(spacing: 0) {
                 ZStack {
-                    shape.fill(theme.palette.background.color)
-                    shape.strokeBorder(theme.palette.rimLight.color, lineWidth: 0.5)
+                    // ImageRenderer не умеет рисовать NSVisualEffectView,
+                    // поэтому стекло здесь приближаем плотностью заливки.
+                    shape.fill(
+                        theme.palette.background.color
+                            .opacity(theme.palette.useGlass ? theme.palette.glassTint : 1)
+                    )
+                    if theme.palette.useGlass {
+                        shape.fill(
+                            LinearGradient(
+                                colors: [.white.opacity(theme.palette.glassSheen), .white.opacity(0)],
+                                startPoint: .top, endPoint: .center
+                            )
+                        )
+                    }
+                    shape.strokeBorder(theme.palette.rimLight.color, lineWidth: theme.palette.rimWidth)
                     content()
-                        .padding(theme.geometry.contentPadding)
+                        .padding(size.height > theme.geometry.compactSize.height + 12
+                                 ? theme.geometry.contentPadding
+                                 : theme.geometry.compactPadding)
                         .frame(width: size.width, height: size.height)
                 }
                 .frame(width: size.width, height: size.height)

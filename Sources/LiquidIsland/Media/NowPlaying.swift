@@ -10,6 +10,9 @@ struct NowPlaying: Equatable {
     var isPlaying: Bool
     /// Bundle id приложения-источника, если известен.
     var sourceBundleID: String?
+    /// Можно ли отсюда управлять воспроизведением. У источников, найденных
+    /// только по звуку, кнопок нет — управлять нечем.
+    var supportsTransport: Bool = true
 
     static let empty = NowPlaying(
         title: "", artist: "", album: "", artwork: nil,
@@ -31,6 +34,7 @@ struct NowPlaying: Equatable {
         abs(lhs.duration - rhs.duration) < 0.5 &&
         abs(lhs.elapsed - rhs.elapsed) < 0.5 &&
         lhs.sourceBundleID == rhs.sourceBundleID &&
+        lhs.supportsTransport == rhs.supportsTransport &&
         lhs.artwork === rhs.artwork
     }
 }
