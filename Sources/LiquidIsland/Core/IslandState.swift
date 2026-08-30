@@ -69,7 +69,7 @@ final class IslandState: ObservableObject {
     }
 
     /// Размер в покое: карточка трека, если играет музыка, иначе узкая пилюля.
-    private var restingSize: CGSize {
+    var restingSize: CGSize {
         guard showsMediaCard else {
             return metrics.hasHardwareNotch ? metrics.closedSize : theme.geometry.closedSize
         }

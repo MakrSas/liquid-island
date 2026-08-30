@@ -113,8 +113,9 @@ final class IslandController {
     /// Кладём стекло ровно под остров и только пока он раскрыт.
     ///
     /// Стекло не прячется, а создаётся и уничтожается: композицию гасит
-    /// оконный сервер, и скрытая вьюха оставляет эффект висеть на экране
-    /// ещё некоторое время после сворачивания.
+    /// оконный сервер, и скрытая вьюха оставляет эффект висеть на экране.
+    /// Кадр при раскрытии анимируется — иначе стекло появляется сразу во всю
+    /// величину, пока сам остров ещё только растёт.
     private func layoutGlass() {
         let theme = state.theme
         guard theme.palette.useLiquidGlass, state.phase == .expanded else {
@@ -123,29 +124,44 @@ final class IslandController {
             return
         }
 
-        let size = state.size
+        let target = glassFrame(for: state.size)
+
+        if let glass = glassView {
+            animateGlass(glass, to: target)
+        } else {
+            let fresh = IslandGlassView(frame: glassFrame(for: state.restingSize))
+            fresh.configure(
+                cornerRadius: theme.geometry.bottomRadiusOpen,
+                isClear: theme.palette.glassStyle == .clear,
+                tint: theme.palette.glassTint?.nsColor,
+                isInteractive: theme.palette.glassInteractive
+            )
+            glassContainer?.addSubview(fresh, positioned: .below, relativeTo: host)
+            glassView = fresh
+            // Стартуем от размера свёрнутого острова и догоняем его рост.
+            animateGlass(fresh, to: target)
+        }
+    }
+
+    /// Кадр стекла в координатах контейнера. AppKit считает снизу, остров
+    /// прижат к верхней кромке.
+    private func glassFrame(for size: CGSize) -> CGRect {
         let bounds = host.bounds
-        // Координаты AppKit считаются снизу, остров прижат к верхней кромке.
-        let frame = CGRect(
+        return CGRect(
             x: bounds.midX - size.width / 2,
-            y: bounds.maxY - size.height - theme.geometry.floatingTopInset,
+            y: bounds.maxY - size.height - state.theme.geometry.floatingTopInset,
             width: size.width,
             height: size.height
         )
+    }
 
-        let glass = glassView ?? {
-            let fresh = IslandGlassView(frame: frame)
-            glassContainer?.addSubview(fresh, positioned: .below, relativeTo: host)
-            glassView = fresh
-            return fresh
-        }()
-        glass.frame = frame
-        glass.configure(
-            cornerRadius: theme.geometry.bottomRadiusOpen,
-            isClear: theme.palette.glassStyle == .clear,
-            tint: theme.palette.glassTint?.nsColor,
-            isInteractive: theme.palette.glassInteractive
-        )
+    private func animateGlass(_ glass: NSView, to frame: CGRect) {
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = state.theme.motion.openResponse
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            context.allowsImplicitAnimation = true
+            glass.animator().frame = frame
+        }
     }
 
     // MARK: - Мышь
