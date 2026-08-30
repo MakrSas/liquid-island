@@ -17,6 +17,7 @@ final class IslandController {
     private var lastIslandSize: CGSize = .zero
     /// Кому вернуть фокус, когда остров свернётся.
     private var previousApp: NSRunningApplication?
+    private var releaseKeyWork: DispatchWorkItem?
     private var bag = Set<AnyCancellable>()
     private var globalMonitor: Any?
     private var localMonitor: Any?
@@ -141,6 +142,8 @@ final class IslandController {
         guard theme.palette.useLiquidGlass, state.phase == .expanded else {
             glassView?.removeFromSuperview()
             glassView = nil
+            releaseKeyWork?.cancel()
+            releaseKeyWork = nil
             restorePreviousApp()
             return
         }
@@ -153,6 +156,21 @@ final class IslandController {
                 NSApp.activate(ignoringOtherApps: true)
             }
             panel.makeKeyAndOrderFront(nil)
+
+            // Стекло уже отрисовано — пробуем вернуть фокус прежнему хозяину
+            // и посмотреть, переживёт ли стекло потерю ключа.
+            if theme.palette.releaseKeyAfterGlass {
+                let work = DispatchWorkItem { [weak self] in
+                    guard let self, self.state.phase == .expanded else { return }
+                    self.restorePreviousApp()
+                }
+                releaseKeyWork?.cancel()
+                releaseKeyWork = work
+                DispatchQueue.main.asyncAfter(
+                    deadline: .now() + theme.palette.releaseKeyDelay,
+                    execute: work
+                )
+            }
         }
         guard glassView == nil else { return }
 
