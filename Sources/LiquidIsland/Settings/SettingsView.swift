@@ -25,23 +25,25 @@ struct SettingsView: View {
 
         var icon: String {
             switch self {
-            case .appearance: return "paintpalette"
-            case .glass: return "drop.halffull"
-            case .motion: return "wand.and.rays"
-            case .behavior: return "hand.tap"
-            case .huds: return "speaker.wave.2"
+            case .appearance: return "paintbrush"
+            case .glass: return "square.on.square.dashed"
+            case .motion: return "waveform.path"
+            case .behavior: return "cursorarrow.motionlines"
+            case .huds: return "slider.horizontal.3"
             case .about: return "info.circle"
             }
         }
 
+        /// Цвета взяты в тон системных Настроек: там почти всё синее и серое,
+        /// а насыщенные оттенки достаются немногим разделам.
         var tint: Color {
             switch self {
-            case .appearance: return .pink
-            case .glass: return .cyan
-            case .motion: return .purple
-            case .behavior: return .orange
-            case .huds: return .blue
-            case .about: return .gray
+            case .appearance: return Color(nsColor: .systemGray)
+            case .glass: return Color(nsColor: .systemTeal)
+            case .motion: return Color(nsColor: .systemIndigo)
+            case .behavior: return Color(nsColor: .systemBlue)
+            case .huds: return Color(nsColor: .systemRed)
+            case .about: return Color(nsColor: .systemGray)
             }
         }
     }
@@ -55,9 +57,12 @@ struct SettingsView: View {
                     } icon: {
                         Image(systemName: item.icon)
                             .foregroundStyle(.white)
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.system(size: 12, weight: .medium))
                             .frame(width: 20, height: 20)
-                            .background(item.tint, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+                            .background(
+                                item.tint,
+                                in: RoundedRectangle(cornerRadius: 5.5, style: .continuous)
+                            )
                     }
                 }
             }
@@ -77,10 +82,18 @@ struct SettingsView: View {
                     SettingsPreview(store: store, phase: previewPhase)
                         .listRowInsets(EdgeInsets())
                     Picker("Состояние", selection: $previewPhase) {
-                        Text("Покой").tag(IslandPhase.closed)
-                        Text("Наведение").tag(IslandPhase.hovered)
-                        Text("Раскрытый").tag(IslandPhase.expanded)
+                        Image(systemName: "capsule")
+                            .help("Покой")
+                            .tag(IslandPhase.closed)
+                        Image(systemName: "cursorarrow")
+                            .help("Наведение")
+                            .tag(IslandPhase.hovered)
+                        Image(systemName: "rectangle.expand.vertical")
+                            .help("Раскрытый")
+                            .tag(IslandPhase.expanded)
                     }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
                 }
             }
 
