@@ -1,12 +1,13 @@
 import SwiftUI
 import AppKit
 
-/// Мост к нативному Liquid Glass macOS 26+.
+/// Стекло острова.
 ///
-/// Это тот же эффект, что у системных панелей: он сам подхватывает настройки
-/// прозрачности и контраста из «Универсального доступа», сам реагирует на
-/// содержимое под собой. Своими руками такое не рисуется, поэтому на системах
-/// старше 26 просто уступаем место обычному размытию.
+/// Слоя два, и это намеренно. Нижний — `NSVisualEffectView`: он гарантированно
+/// показывает размытую подложку, то есть даёт саму прозрачность. Верхний —
+/// нативный `NSGlassEffectView` из macOS 26: он добавляет преломление, блик и
+/// живёт по системным правилам прозрачности и контраста. Если система его
+/// почему-то не рисует, стекло всё равно остаётся стеклом, а не чёрной дырой.
 struct LiquidGlassView: NSViewRepresentable {
     var cornerRadius: CGFloat
     var isClear: Bool
@@ -14,40 +15,70 @@ struct LiquidGlassView: NSViewRepresentable {
     var isInteractive: Bool
 
     func makeNSView(context: Context) -> NSView {
-        guard #available(macOS 26.0, *) else {
-            let fallback = NSVisualEffectView()
-            fallback.material = .hudWindow
-            fallback.blendingMode = .behindWindow
-            fallback.state = .active
-            fallback.wantsLayer = true
-            fallback.layer?.cornerCurve = .continuous
-            return fallback
+        let container = GlassContainerView()
+        container.wantsLayer = true
+
+        let blur = NSVisualEffectView()
+        blur.material = isClear ? .underWindowBackground : .hudWindow
+        blur.blendingMode = .behindWindow
+        blur.state = .active
+        blur.wantsLayer = true
+        blur.autoresizingMask = [.width, .height]
+        container.addSubview(blur)
+        container.blur = blur
+
+        if #available(macOS 26.0, *) {
+            let glass = NSGlassEffectView()
+            // Содержимое должно занимать всю площадь: стекло считает
+            // преломление по нему, и с пустым нулевым вью рисовать нечего.
+            let content = NSView()
+            content.wantsLayer = true
+            content.autoresizingMask = [.width, .height]
+            glass.contentView = content
+            glass.autoresizingMask = [.width, .height]
+            container.addSubview(glass)
+            container.glass = glass
         }
-        let view = NSGlassEffectView()
-        // Без contentView стекло рисует одну лишь подложку и выглядит блюром:
-        // краевое преломление и блик считаются по содержимому.
-        let content = NSView()
-        content.wantsLayer = true
-        view.contentView = content
-        apply(to: view)
-        return view
+
+        apply(to: container)
+        return container
     }
 
     func updateNSView(_ view: NSView, context: Context) {
-        if #available(macOS 26.0, *), let glass = view as? NSGlassEffectView {
-            apply(to: glass)
-        } else {
-            view.layer?.cornerRadius = cornerRadius
-        }
+        guard let container = view as? GlassContainerView else { return }
+        apply(to: container)
     }
 
-    @available(macOS 26.0, *)
-    private func apply(to view: NSGlassEffectView) {
-        view.cornerRadius = cornerRadius
-        view.style = isClear ? .clear : .regular
-        view.tintColor = tint
-        if #available(macOS 27.0, *) {
-            view.effectIsInteractive = isInteractive
+    private func apply(to container: GlassContainerView) {
+        container.cornerRadius = cornerRadius
+        container.blur?.material = isClear ? .underWindowBackground : .hudWindow
+        if #available(macOS 26.0, *), let glass = container.glass as? NSGlassEffectView {
+            glass.cornerRadius = cornerRadius
+            glass.style = isClear ? .clear : .regular
+            glass.tintColor = tint
+            if #available(macOS 27.0, *) {
+                glass.effectIsInteractive = isInteractive
+            }
         }
+        container.needsLayout = true
+    }
+}
+
+/// Держит слои стекла и следит, чтобы они повторяли форму и размер контейнера.
+final class GlassContainerView: NSView {
+    var blur: NSVisualEffectView?
+    var glass: NSView?
+    var cornerRadius: CGFloat = 0
+
+    override func layout() {
+        super.layout()
+        blur?.frame = bounds
+        glass?.frame = bounds
+        blur?.layer?.cornerRadius = cornerRadius
+        blur?.layer?.cornerCurve = .continuous
+        blur?.layer?.masksToBounds = true
+        layer?.cornerRadius = cornerRadius
+        layer?.cornerCurve = .continuous
+        layer?.masksToBounds = true
     }
 }

@@ -82,13 +82,17 @@ struct IslandRootView: View {
                     levels: audio.bands,
                     showsArtist: state.phase == .hovered
                 )
+                .transition(.blurFade(radius: 6))
+                // Свайп по тачпаду уводит карточку вбок.
+                .offset(x: state.swipeOffset)
+                .opacity(state.swipeFade)
             } else {
                 // Без музыки остров — просто чёрное пятно, неотличимое от выреза.
                 Color.clear
             }
         case .expanded:
             ExpandedMediaView(media: media, theme: theme, levels: audio.bands)
-                .transition(.opacity)
+                .transition(.blurFade(radius: 10))
         }
     }
 }
@@ -119,18 +123,26 @@ struct CompactMediaView: View {
                 size: showsArtist ? 34 : 18,
                 cornerRadius: artworkRadius
             )
+            .id(track.title)
+            .transition(.blurFade(radius: 10, scale: 0.7))
+            .animation(theme.motion.content, value: track.title)
             VStack(alignment: .leading, spacing: 1) {
                 Text(track.title.isEmpty ? "Ничего не играет" : track.title)
                     .font(.system(size: showsArtist ? 12 : 11, weight: .semibold))
                     .foregroundStyle(theme.palette.primaryText.color)
                     .lineLimit(1)
+                    .id(track.title)
+                    .transition(.blurFade(radius: 6))
                 if showsArtist, !track.artist.isEmpty {
                     Text(track.artist)
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(theme.palette.secondaryText.color)
                         .lineLimit(1)
+                        .id(track.artist)
+                        .transition(.blurFade(radius: 6))
                 }
             }
+            .animation(theme.motion.content, value: track.title)
             Spacer(minLength: 6)
             WaveformView(
                 isPlaying: track.isPlaying,
@@ -189,11 +201,14 @@ struct ExpandedMediaView: View {
                 )
                 HStack {
                     Text(Self.format(track.elapsed))
+                        .contentTransition(.numericText())
                     Spacer()
                     Text("-" + Self.format(max(track.duration - track.elapsed, 0)))
+                        .contentTransition(.numericText())
                 }
                 .font(.system(size: 9, weight: .medium).monospacedDigit())
                 .foregroundStyle(theme.palette.secondaryText.color)
+                .animation(.easeInOut(duration: 0.35), value: Int(track.elapsed))
             }
 
             HStack(spacing: 20) {

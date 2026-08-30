@@ -37,14 +37,15 @@ struct IslandTheme: Codable, Equatable {
 
         /// Радиус верхних углов (в режиме чёлки — «вывернутых» наружу).
         var topRadius: CGFloat = 9
-        /// Радиус нижних углов в покое. Совпадает с радиусом обложки:
-        /// в свёрнутом виде остров и есть оправа для неё.
-        var bottomRadiusClosed: CGFloat = 6
-        /// Радиус обложки в покое и под курсором.
-        var artworkRadius: CGFloat = 6
-        var artworkRadiusHovered: CGFloat = 9
+        /// Радиус нижних углов в покое — такой же, как у пустого острова,
+        /// когда музыки нет. Появление карточки форму не меняет.
+        var bottomRadiusClosed: CGFloat = 8
+        /// Радиус обложки задаётся отдельно: подгонять её под кромку,
+        /// чтобы смягчить углы острова, — не тот способ.
+        var artworkRadius: CGFloat = 5
+        var artworkRadiusHovered: CGFloat = 8
         /// Радиус нижних углов, когда остров раскрыт.
-        var bottomRadiusOpen: CGFloat = 15
+        var bottomRadiusOpen: CGFloat = 11
 
         /// Отступ от верхней кромки экрана. Ноль — остров врастает в кромку,
         /// как аппаратный вырез на новых маках. Больше нуля — «летит» под ней.

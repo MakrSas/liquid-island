@@ -205,6 +205,10 @@ final class AudioLevels: ObservableObject {
     private var silentFrames = 0
     private let silenceLimit = 90      // три секунды при 30 кадрах
 
+    /// Границы динамического диапазона в децибелах.
+    private static let floorDB: Float = -84
+    private static let ceilingDB: Float = -6
+
     init(bandCount: Int = 4) {
         self.bandCount = bandCount
         smoothed = [Float](repeating: 0, count: bandCount)
@@ -282,7 +286,10 @@ final class AudioLevels: ObservableObject {
             let slice = magnitudes[lower..<upper]
             let energy = slice.reduce(0, +) / Float(slice.count)
             let db = 20 * log10(max(energy, 1e-7))
-            fresh[band] = min(max((db + 62) / 46, 0), 1)
+            // Диапазон широкий, иначе музыка почти всегда упирается в потолок.
+            let normalized = (db - Self.floorDB) / (Self.ceilingDB - Self.floorDB)
+            // Кривая прижимает середину: пики остаются пиками, а не нормой.
+            fresh[band] = pow(min(max(normalized, 0), 1), 1.7)
             lower = upper
         }
 

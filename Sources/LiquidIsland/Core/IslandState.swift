@@ -13,6 +13,10 @@ enum IslandPhase: Equatable {
 final class IslandState: ObservableObject {
     @Published var phase: IslandPhase = .closed
     @Published var metrics: NotchMetrics
+    /// Карточку смахнули вправо — она спрятана до обратного свайпа.
+    @Published private(set) var isDismissed = false
+    /// Сдвиг карточки во время свайпа, в точках.
+    @Published private(set) var swipeOffset: CGFloat = 0
 
     let media: MediaHub
     private let themeStore: ThemeStore
@@ -73,7 +77,39 @@ final class IslandState: ObservableObject {
     }
 
     /// Показываем ли карточку трека вместо пустой пилюли.
-    var showsMediaCard: Bool { theme.behavior.hoverShowsMedia && hasMedia }
+    var showsMediaCard: Bool {
+        theme.behavior.hoverShowsMedia && hasMedia && !isDismissed
+    }
+
+    /// Прозрачность карточки во время свайпа: чем дальше увели, тем бледнее.
+    var swipeFade: Double {
+        1 - min(abs(Double(swipeOffset)) / Double(Self.swipeThreshold * 1.6), 0.9)
+    }
+
+    // MARK: - Свайп по тачпаду
+
+    private static let swipeThreshold: CGFloat = 55
+
+    /// Пришёл горизонтальный сдвиг с тачпада.
+    func swipe(by delta: CGFloat) {
+        guard phase != .expanded, hasMedia else { return }
+        // Вправо смахиваем показанную карточку, влево — возвращаем спрятанную.
+        let allowed = isDismissed ? min(delta, 0) : max(delta, 0)
+        swipeOffset += allowed
+        // Дальше порога тянуть некуда: пусть сопротивляется.
+        let limit = Self.swipeThreshold * 1.5
+        swipeOffset = min(max(swipeOffset, -limit), limit)
+    }
+
+    /// Палец с тачпада убрали — решаем, сработал жест или нет.
+    func endSwipe() {
+        guard swipeOffset != 0 else { return }
+        let passed = abs(swipeOffset) >= Self.swipeThreshold
+        withAnimation(theme.motion.open) {
+            if passed { isDismissed.toggle() }
+            swipeOffset = 0
+        }
+    }
 
     var bottomRadius: CGFloat {
         switch phase {

@@ -14,6 +14,8 @@ final class IslandController {
     private var globalMonitor: Any?
     private var localMonitor: Any?
     private var clickMonitor: Any?
+    private var scrollMonitor: Any?
+    private var localScrollMonitor: Any?
     private var mouseInside = false
 
     init(screen: NSScreen, media: MediaHub, themeStore: ThemeStore = .shared) {
@@ -107,6 +109,24 @@ final class IslandController {
             self?.syncMouseRegion()
             return event
         }
+        // Свайп по тачпаду поверх острова: вправо — убрать карточку,
+        // влево — вернуть. Ловим и локально, и глобально: окно почти всё
+        // время сквозное, и события до него сами не доходят.
+        let scroll: (NSEvent) -> Void = { [weak self] event in
+            guard let self, self.mouseInside else { return }
+            guard event.hasPreciseScrollingDeltas else { return }
+            if event.phase == .ended || event.momentumPhase == .began {
+                self.state.endSwipe()
+            } else if event.phase == .changed || event.phase == .began {
+                self.state.swipe(by: event.scrollingDeltaX)
+            }
+        }
+        scrollMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.scrollWheel], handler: scroll)
+        localScrollMonitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel]) { event in
+            scroll(event)
+            return event
+        }
+
         // Раскрытый остров закрывается кликом мимо, а не уводом курсора:
         // иначе им невозможно пользоваться, не удерживая мышь внутри.
         clickMonitor = NSEvent.addGlobalMonitorForEvents(
@@ -138,12 +158,15 @@ final class IslandController {
     }
 
     func close() {
-        for monitor in [globalMonitor, localMonitor, clickMonitor].compactMap({ $0 }) {
+        let monitors = [globalMonitor, localMonitor, clickMonitor, scrollMonitor, localScrollMonitor]
+        for monitor in monitors.compactMap({ $0 }) {
             NSEvent.removeMonitor(monitor)
         }
         globalMonitor = nil
         localMonitor = nil
         clickMonitor = nil
+        scrollMonitor = nil
+        localScrollMonitor = nil
         panel.orderOut(nil)
     }
 }
