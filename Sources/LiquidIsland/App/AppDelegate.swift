@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var controllers: [CGDirectDisplayID: IslandController] = [:]
     private var bag = Set<AnyCancellable>()
     private var statusItem: NSStatusItem?
+    private var settingsWindow: SettingsWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Приложение без Dock-иконки: остров — это и есть весь интерфейс.
@@ -147,21 +148,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(withTitle: "LiquidIsland", action: nil, keyEquivalent: "")
         menu.addItem(.separator())
 
+        let settings = NSMenuItem(
+            title: "Настройки…",
+            action: #selector(openSettings),
+            keyEquivalent: ","
+        )
+        settings.target = self
+        menu.addItem(settings)
+
         let config = NSMenuItem(
             title: "Открыть theme.json…",
             action: #selector(openConfig),
-            keyEquivalent: ","
+            keyEquivalent: ""
         )
         config.target = self
         menu.addItem(config)
-
-        let reset = NSMenuItem(
-            title: "Сбросить оформление",
-            action: #selector(resetTheme),
-            keyEquivalent: ""
-        )
-        reset.target = self
-        menu.addItem(reset)
 
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(
@@ -170,6 +171,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             keyEquivalent: "q"
         ))
         return menu
+    }
+
+    @objc private func openSettings() {
+        if settingsWindow == nil {
+            settingsWindow = SettingsWindowController(store: themeStore)
+        }
+        settingsWindow?.present()
     }
 
     @objc private func openConfig() {
