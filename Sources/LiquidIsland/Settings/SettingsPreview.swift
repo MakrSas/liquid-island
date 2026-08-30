@@ -49,10 +49,15 @@ struct SettingsPreview: View {
             }
             island
         }
-        .frame(maxWidth: .infinity, alignment: .top)
         // Высота с запасом: раскрытый остров помещается целиком, под ним
-        // остаётся видимая полоса обоев.
-        .frame(height: theme.geometry.expandedSize.height + 56)
+        // остаётся видимая полоса обоев. Выравнивание обязательно в той же
+        // рамке, где задана высота, иначе содержимое встанет по центру.
+        .frame(
+            maxWidth: .infinity,
+            minHeight: theme.geometry.expandedSize.height + 56,
+            maxHeight: theme.geometry.expandedSize.height + 56,
+            alignment: .top
+        )
         // Обои именно фоном: как участник разметки картинка задаёт размер
         // контейнера и выталкивает остров за видимую область.
         .background { Wallpaper() }
