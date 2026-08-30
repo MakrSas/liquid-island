@@ -58,10 +58,6 @@ struct IslandRootView: View {
                 .clipped()
         }
         .frame(width: size.width, height: size.height)
-        .shadow(
-            color: .black.opacity(state.phase == .expanded ? 0.45 : 0),
-            radius: 22, x: 0, y: 10
-        )
         .contentShape(shape)
         // Наведение отслеживает IslandController: окно почти всё время
         // сквозное, и SwiftUI о движениях мыши просто не узнаёт.

@@ -129,17 +129,29 @@ final class IslandController {
         if let glass = glassView {
             animateGlass(glass, to: target)
         } else {
-            let fresh = IslandGlassView(frame: glassFrame(for: state.restingSize))
+            let start = glassFrame(for: state.restingSize)
+            let fresh = IslandGlassView(frame: start)
             fresh.configure(
                 cornerRadius: theme.geometry.bottomRadiusOpen,
                 isClear: theme.palette.glassStyle == .clear,
                 tint: theme.palette.glassTint?.nsColor,
                 isInteractive: theme.palette.glassInteractive
             )
+            // Добавляем со снятыми неявными анимациями: иначе слой стартует
+            // из нуля и стекло влетает сбоку вместо роста из центра.
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
             glassContainer?.addSubview(fresh, positioned: .below, relativeTo: host)
+            fresh.frame = start
+            fresh.layoutSubtreeIfNeeded()
+            CATransaction.commit()
             glassView = fresh
-            // Стартуем от размера свёрнутого острова и догоняем его рост.
-            animateGlass(fresh, to: target)
+
+            // Догоняем рост острова уже следующим тактом, когда кадр зафиксирован.
+            DispatchQueue.main.async { [weak self] in
+                guard let self, self.glassView === fresh else { return }
+                self.animateGlass(fresh, to: target)
+            }
         }
     }
 
