@@ -22,76 +22,32 @@ struct IslandRootView: View {
         .padding(.top, theme.geometry.floatingTopInset)
     }
 
-    private var shape: IslandShape {
-        IslandShape(
-            style: state.shapeStyle,
-            topRadius: theme.geometry.topRadius,
-            bottomRadius: state.bottomRadius
-        )
-    }
-
-    /// Кромка стекла: сверху блик, снизу почти ничего — так объём читается
-    /// даже на чёрном.
-    private var rimGradient: LinearGradient {
-        LinearGradient(
-            colors: [
-                theme.palette.rimLight.color,
-                theme.palette.rimLight.color.opacity(0.15)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-    }
-
     private var island: some View {
-        ZStack {
-            IslandBackground(
-                shape: shape,
-                theme: theme,
-                glassReveal: state.phase == .expanded ? 1 : 0
-            )
-            .overlay(
-                shape
-                    .strokeBorder(rimGradient, lineWidth: theme.palette.rimWidth)
-                    .opacity(state.showsMediaCard || state.phase != .closed ? 1 : 0)
-            )
-
-            content
-                .frame(width: size.width, height: size.height)
-                .clipped()
-        }
-        .frame(width: size.width, height: size.height)
-        // Стекло живёт в AppKit и должно идти за островом кадр в кадр.
-        .reportingAnimatedSize(size, to: onSizeChange)
+        IslandBody(
+            media: media,
+            theme: theme,
+            phase: state.phase,
+            size: size,
+            shapeStyle: state.shapeStyle,
+            showsMedia: state.showsMediaCard,
+            levels: audio.bands,
+            hudEvent: state.hudEvent,
+            swipeOffset: state.swipeOffset,
+            swipeFade: state.swipeFade
+        )
         .shadow(
             color: .black.opacity(state.phase == .expanded ? 0.4 : 0),
             radius: 18, x: 0, y: 8
         )
-        .contentShape(shape)
+        .contentShape(
+            IslandShape(
+                style: state.shapeStyle,
+                topRadius: theme.geometry.topRadius,
+                bottomRadius: state.bottomRadius
+            )
+        )
         // Наведение отслеживает IslandController: окно почти всё время
         // сквозное, и SwiftUI о движениях мыши просто не узнаёт.
         .onTapGesture { state.toggle() }
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        if let event = state.hudEvent {
-            HUDView(event: event, theme: theme)
-                .padding(theme.geometry.compactPadding)
-                .transition(.softFade(scale: 0.9, offsetY: 0))
-        } else if state.showsMediaCard || (state.phase == .expanded && state.hasMedia) {
-            IslandMediaView(
-                media: media,
-                theme: theme,
-                phase: state.phase,
-                levels: audio.bands
-            )
-            // Свайп по тачпаду уводит карточку вбок.
-            .offset(x: state.swipeOffset)
-            .opacity(state.swipeFade)
-        } else {
-            // Без музыки остров — просто чёрное пятно, неотличимое от выреза.
-            Color.clear
-        }
     }
 }

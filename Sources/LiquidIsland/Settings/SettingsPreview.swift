@@ -1,11 +1,12 @@
 import SwiftUI
 
-/// Живое превью острова внутри настроек.
+/// Живое превью острова в настройках.
 ///
-/// Показывает ровно те же вьюхи, что и настоящий остров, поэтому любая правка
-/// видна сразу и не требует раскрывать остров на экране. Стекла здесь нет:
-/// оно рисуется системой только в ключевом окне и в превью выглядело бы
-/// иначе, чем на самом деле, — лучше честно показать чёрное тело.
+/// Показывает не копию, а тот же самый `IslandBody`, что рисует настоящий
+/// остров, — иначе превью разошлось бы с оригиналом при первой же правке.
+/// Фон — обои рабочего стола: на сером стекло не читается, а именно его и
+/// нужно оценивать. Стекло здесь настоящее: окно настроек ключевое, значит
+/// система рисует его полноценно.
 struct SettingsPreview: View {
     @ObservedObject var store: ThemeStore
     let phase: IslandPhase
@@ -25,48 +26,74 @@ struct SettingsPreview: View {
         }
     }
 
-    private var shape: IslandShape {
-        IslandShape(
-            style: .notch,
-            topRadius: theme.geometry.topRadius,
-            bottomRadius: phase == .expanded
-                ? theme.geometry.bottomRadiusOpen
-                : theme.geometry.bottomRadiusClosed
+    private var island: IslandBody {
+        IslandBody(
+            media: media,
+            theme: theme,
+            phase: phase,
+            size: size,
+            shapeStyle: .notch,
+            showsMedia: true,
+            levels: [0.85, 0.4, 0.7, 0.3]
         )
     }
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color(nsColor: .controlBackgroundColor), Color(nsColor: .windowBackgroundColor)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+            Wallpaper()
 
             VStack(spacing: 0) {
                 ZStack {
-                    shape.fill(theme.palette.background.color)
-                    shape.strokeBorder(
-                        theme.palette.rimLight.color,
-                        lineWidth: theme.palette.rimWidth
-                    )
-                    IslandMediaView(
-                        media: media,
-                        theme: theme,
-                        phase: phase,
-                        levels: [0.85, 0.4, 0.7, 0.3]
-                    )
-                    .frame(width: size.width, height: size.height)
-                    .clipped()
+                    // Стекло под островом — то же, что рисует система в
+                    // раскрытом виде. В превью оно уместно: окно ключевое.
+                    if #available(macOS 26.0, *), phase == .expanded, theme.palette.useLiquidGlass {
+                        Color.clear
+                            .frame(width: size.width, height: size.height)
+                            .glassEffect(glass, in: island.shape)
+                    }
+                    island
                 }
-                .frame(width: size.width, height: size.height)
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
-        .frame(height: theme.geometry.expandedSize.height + 24)
+        .frame(height: theme.geometry.expandedSize.height + 28)
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         .animation(theme.motion.open, value: phase)
+    }
+
+    @available(macOS 26.0, *)
+    private var glass: Glass {
+        let base: Glass = theme.palette.glassStyle == .clear ? .clear : .regular
+        guard let tint = theme.palette.glassTint else { return base }
+        return base.tint(tint.color)
+    }
+}
+
+/// Обои рабочего стола, а если их не достать — системные, которые есть на
+/// каждом маке. Так превью выглядит одинаково и не упирается в пустой фон.
+private struct Wallpaper: View {
+    private var image: NSImage? {
+        if let screen = NSScreen.main,
+           let url = NSWorkspace.shared.desktopImageURL(for: screen),
+           let image = NSImage(contentsOf: url) {
+            return image
+        }
+        return NSImage(contentsOfFile: "/System/Library/CoreServices/DefaultDesktop.heic")
+    }
+
+    var body: some View {
+        if let image {
+            Image(nsImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+        } else {
+            LinearGradient(
+                colors: [Color(nsColor: .systemBlue), Color(nsColor: .systemTeal)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
     }
 }
 
