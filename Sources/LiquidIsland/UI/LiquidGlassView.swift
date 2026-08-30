@@ -10,6 +10,7 @@ import ObjectiveC.runtime
 final class IslandGlassView: NSView {
 
     private var glass: NSView?
+    private var lastCornerRadius: CGFloat = 0
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -34,8 +35,14 @@ final class IslandGlassView: NSView {
     }
 
     /// Форма и характер стекла.
+    ///
+    /// Контур задаётся явно, а не одним радиусом: у стекла есть мягкая
+    /// внешняя кромка, и без точной формы она вылезает за силуэт острова.
+    /// Верхние углы прямые — там стекло всё равно под чёрным, зато контур
+    /// гарантированно не выходит за границы вьюхи.
     func configure(cornerRadius: CGFloat, isClear: Bool, tint: NSColor?, isInteractive: Bool) {
         guard #available(macOS 26.0, *), let glass = glass as? NSGlassEffectView else { return }
+        lastCornerRadius = cornerRadius
         glass.cornerRadius = cornerRadius
         glass.style = isClear ? .clear : .regular
         glass.tintColor = tint
@@ -43,6 +50,38 @@ final class IslandGlassView: NSView {
             glass.effectIsInteractive = isInteractive
         }
         awaken(glass)
+        applyShape(to: glass, cornerRadius: cornerRadius)
+    }
+
+    /// Отдаёт стеклу собственный контур через приватный `_setPath:`.
+    /// Публично формой управляет только `cornerRadius`, а он скругляет все
+    /// четыре угла и о границах вьюхи не заботится.
+    private func applyShape(to view: NSView, cornerRadius: CGFloat) {
+        guard bounds.width > 0, bounds.height > 0 else { return }
+        let selector = NSSelectorFromString("_setPath:")
+        guard view.responds(to: selector) else { return }
+
+        let radius = min(cornerRadius, min(bounds.width, bounds.height) / 2)
+        let path = CGMutablePath()
+        // Координаты AppKit: начало снизу слева.
+        path.move(to: CGPoint(x: 0, y: bounds.maxY))
+        path.addLine(to: CGPoint(x: bounds.maxX, y: bounds.maxY))
+        path.addLine(to: CGPoint(x: bounds.maxX, y: radius))
+        path.addQuadCurve(
+            to: CGPoint(x: bounds.maxX - radius, y: 0),
+            control: CGPoint(x: bounds.maxX, y: 0)
+        )
+        path.addLine(to: CGPoint(x: radius, y: 0))
+        path.addQuadCurve(
+            to: CGPoint(x: 0, y: radius),
+            control: CGPoint(x: 0, y: 0)
+        )
+        path.closeSubpath()
+
+        typealias Setter = @convention(c) (NSObject, Selector, CGPath?) -> Void
+        guard let method = class_getMethodImplementation(type(of: view), selector) else { return }
+        let setter = unsafeBitCast(method, to: Setter.self)
+        setter(view, selector, path)
     }
 
     /// Возвращает стеклу «бодрое» состояние.
@@ -64,6 +103,9 @@ final class IslandGlassView: NSView {
     override func layout() {
         super.layout()
         glass?.frame = bounds
+        // Контур пересчитывается вместе с размером — иначе на анимации
+        // раскрытия форма отстаёт от кадра.
+        if let glass { applyShape(to: glass, cornerRadius: lastCornerRadius) }
         // AppKit приглушает стекло при каждой смене состояния окна,
         // поэтому снимаем приглушение и здесь, а не только при настройке.
         if let glass { awaken(glass) }
