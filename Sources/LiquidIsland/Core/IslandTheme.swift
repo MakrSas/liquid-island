@@ -14,13 +14,19 @@ struct IslandTheme: Codable, Equatable {
     struct Geometry: Codable, Equatable {
         /// Размер «пилюли» в покое на маках без чёлки.
         /// Высота держится в пределах меню-бара, чтобы остров не залезал на окна.
-        var closedSize: CGSize = CGSize(width: 172, height: 26)
-        /// Насколько остров подрастает при наведении курсора.
-        var hoverPadding: CGSize = CGSize(width: 26, height: 3)
-        /// Компактный вид: обложка слева, визуализатор справа.
-        var compactSize: CGSize = CGSize(width: 288, height: 40)
-        /// Развёрнутая панель.
-        var expandedSize: CGSize = CGSize(width: 420, height: 172)
+        var closedSize: CGSize = CGSize(width: 168, height: 26)
+        /// Карточка трека в покое. Высота та же, что у пилюли: остров
+        /// расширяется вбок, а не вниз.
+        var compactSize: CGSize = CGSize(width: 304, height: 26)
+        /// Насколько остров подрастает при наведении — в основном вниз.
+        var hoverPadding: CGSize = CGSize(width: 14, height: 24)
+        /// Развёрнутая панель — только чёрная часть, без стеклянного подноса.
+        var expandedSize: CGSize = CGSize(width: 420, height: 168)
+
+        /// Где по высоте раскрытого острова чёрный начинает уходить в стекло
+        /// и где растворяется полностью. Доли высоты, сверху вниз.
+        var glassFadeStart: Double = 0.42
+        var glassFadeEnd: Double = 0.98
 
         /// Радиус верхних углов (в режиме чёлки — «вывернутых» наружу).
         var topRadius: CGFloat = 10
@@ -35,7 +41,7 @@ struct IslandTheme: Codable, Equatable {
         /// Внутренние поля раскрытого острова.
         var contentPadding: EdgeInsets = EdgeInsets(top: 12, leading: 16, bottom: 14, trailing: 16)
         /// Внутренние поля компактной карточки — она гораздо ниже.
-        var compactPadding: EdgeInsets = EdgeInsets(top: 5, leading: 10, bottom: 5, trailing: 12)
+        var compactPadding: EdgeInsets = EdgeInsets(top: 4, leading: 7, bottom: 4, trailing: 12)
     }
 
     // MARK: - Цвета
@@ -47,33 +53,22 @@ struct IslandTheme: Codable, Equatable {
         var accent: CodableColor = CodableColor(red: 1, green: 0.42, blue: 0.21, alpha: 1)
         var progressTrack: CodableColor = CodableColor(white: 1, alpha: 0.22)
         var progressFill: CodableColor = CodableColor(white: 1, alpha: 0.85)
-        /// Мягкое свечение по краю раскрытого острова.
-        var rimLight: CodableColor = CodableColor(white: 1, alpha: 0.22)
+        /// Мягкое свечение по краю острова.
+        var rimLight: CodableColor = CodableColor(white: 1, alpha: 0.16)
         var rimWidth: CGFloat = 0.6
 
-        /// Стекло вместо плотной заливки.
-        var useGlass: Bool = true
-        /// Материал размытия под островом.
-        var glassMaterial: GlassMaterial = .hud
-        /// Насколько сильно притемняем размытие: 1 — почти чёрный остров,
-        /// 0 — чистое стекло.
-        var glassTint: Double = 0.72
-        /// Сила блика по верхней кромке.
-        var glassSheen: Double = 0.14
+        /// Показывать ли стекло в нижней части раскрытого острова.
+        var useLiquidGlass: Bool = true
+        /// Стиль нативного Liquid Glass.
+        var glassStyle: GlassStyle = .regular
+        /// Подкраска стекла. Пусто — чистое системное стекло.
+        var glassTint: CodableColor? = nil
+        /// Отклик стекла на наведение и нажатие.
+        var glassInteractive: Bool = true
     }
 
-    enum GlassMaterial: String, Codable, CaseIterable {
-        case hud, popover, sidebar, underWindow, menu
-
-        var nsMaterial: NSVisualEffectView.Material {
-            switch self {
-            case .hud: return .hudWindow
-            case .popover: return .popover
-            case .sidebar: return .sidebar
-            case .underWindow: return .underWindowBackground
-            case .menu: return .menu
-            }
-        }
+    enum GlassStyle: String, Codable, CaseIterable {
+        case regular, clear
     }
 
     // MARK: - Анимация
@@ -151,6 +146,10 @@ struct CodableColor: Codable, Equatable {
     }
 
     var color: Color { Color(.sRGB, red: red, green: green, blue: blue, opacity: alpha) }
+
+    var nsColor: NSColor {
+        NSColor(srgbRed: red, green: green, blue: blue, alpha: alpha)
+    }
 }
 
 extension EdgeInsets: @retroactive Codable {

@@ -41,7 +41,11 @@ struct IslandRootView: View {
 
     private var island: some View {
         ZStack {
-            IslandBackground(shape: shape, theme: theme)
+            IslandBackground(
+                shape: shape,
+                theme: theme,
+                glassReveal: state.phase == .expanded ? 1 : 0
+            )
             .overlay(
                 shape
                     .strokeBorder(rimGradient, lineWidth: theme.palette.rimWidth)
@@ -71,7 +75,11 @@ struct IslandRootView: View {
         switch state.phase {
         case .closed, .hovered:
             if state.showsMediaCard {
-                CompactMediaView(track: media.nowPlaying, theme: theme)
+                CompactMediaView(
+                    track: media.nowPlaying,
+                    theme: theme,
+                    showsArtist: state.phase == .hovered
+                )
             } else {
                 // Без музыки остров — просто чёрное пятно, неотличимое от выреза.
                 Color.clear
@@ -88,18 +96,25 @@ struct IslandRootView: View {
 struct CompactMediaView: View {
     let track: NowPlaying
     let theme: IslandTheme
+    /// В покое карточка ровно по высоте пилюли — на вторую строку места нет.
+    /// Она появляется, когда остров подрастает под курсором.
+    var showsArtist: Bool = false
 
     var body: some View {
-        HStack(spacing: 10) {
-            ArtworkView(image: track.artwork, size: 28, cornerRadius: 7)
-            VStack(alignment: .leading, spacing: 0) {
+        HStack(spacing: 8) {
+            ArtworkView(
+                image: track.artwork,
+                size: showsArtist ? 34 : 18,
+                cornerRadius: showsArtist ? 8 : 4
+            )
+            VStack(alignment: .leading, spacing: 1) {
                 Text(track.title.isEmpty ? "Ничего не играет" : track.title)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: showsArtist ? 12 : 11, weight: .semibold))
                     .foregroundStyle(theme.palette.primaryText.color)
                     .lineLimit(1)
-                if !track.artist.isEmpty {
+                if showsArtist, !track.artist.isEmpty {
                     Text(track.artist)
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(theme.palette.secondaryText.color)
                         .lineLimit(1)
                 }
@@ -108,7 +123,7 @@ struct CompactMediaView: View {
             WaveformView(
                 isPlaying: track.isPlaying,
                 color: theme.palette.primaryText.color.opacity(0.9),
-                height: 12
+                height: showsArtist ? 14 : 10
             )
         }
     }

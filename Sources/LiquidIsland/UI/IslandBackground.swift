@@ -1,59 +1,57 @@
 import SwiftUI
 
-/// Подложка острова: либо плотная заливка, либо стекло.
+/// Подложка острова: чёрный верх, плавно переходящий в жидкое стекло книзу.
 ///
-/// Стекло — это настоящее размытие того, что под окном (`NSVisualEffectView`),
-/// притемнённое до нужной плотности, плюс мягкий блик сверху. На чёрном фоне
-/// эффект тонкий, поэтому он и работает: остров остаётся островом, но перестаёт
-/// быть плоской дырой.
+/// Стекло — нативное (`NSGlassEffectView`), поэтому оно живёт по системным
+/// правилам: следует настройкам прозрачности и контраста, реагирует на то,
+/// что под ним. Чёрный слой лежит поверх и растворяется к низу, открывая его.
+/// В покое остров непрозрачно чёрный — переход появляется только в раскрытом виде.
 struct IslandBackground: View {
     let shape: IslandShape
     let theme: IslandTheme
+    /// 0 — сплошной чёрный, 1 — переход в стекло раскрыт полностью.
+    let glassReveal: Double
 
     var body: some View {
         ZStack {
-            if theme.palette.useGlass {
-                VisualEffectView(
-                    material: theme.palette.glassMaterial.nsMaterial,
-                    blendingMode: .behindWindow
+            if theme.palette.useLiquidGlass && glassReveal > 0 {
+                LiquidGlassView(
+                    cornerRadius: theme.geometry.bottomRadiusOpen,
+                    isClear: theme.palette.glassStyle == .clear,
+                    tint: theme.palette.glassTint?.nsColor,
+                    isInteractive: theme.palette.glassInteractive
                 )
-                shape.fill(theme.palette.background.color.opacity(theme.palette.glassTint))
-                // Блик по верхней кромке — то, что делает поверхность стеклом,
-                // а не просто полупрозрачным пятном.
-                shape.fill(
-                    LinearGradient(
-                        colors: [
-                            .white.opacity(theme.palette.glassSheen),
-                            .white.opacity(0)
-                        ],
-                        startPoint: .top,
-                        endPoint: .center
-                    )
-                )
-            } else {
-                shape.fill(theme.palette.background.color)
+                .opacity(glassReveal)
             }
+
+            shape.fill(
+                LinearGradient(
+                    stops: [
+                        .init(color: theme.palette.background.color, location: 0),
+                        .init(
+                            color: theme.palette.background.color,
+                            location: fadeStart
+                        ),
+                        .init(
+                            color: theme.palette.background.color.opacity(1 - glassReveal),
+                            location: fadeEnd
+                        )
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
         }
         .clipShape(shape)
     }
-}
 
-/// Мост к `NSVisualEffectView` — размытию, которого в SwiftUI на macOS нет.
-struct VisualEffectView: NSViewRepresentable {
-    let material: NSVisualEffectView.Material
-    let blendingMode: NSVisualEffectView.BlendingMode
-
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.material = material
-        view.blendingMode = blendingMode
-        view.state = .active
-        view.isEmphasized = true
-        return view
+    /// Пока стекло не раскрыто, точка перехода уезжает за нижнюю кромку —
+    /// так чёрный остаётся сплошным, а не подтаивает раньше времени.
+    private var fadeStart: Double {
+        1 - (1 - theme.geometry.glassFadeStart) * glassReveal
     }
 
-    func updateNSView(_ view: NSVisualEffectView, context: Context) {
-        view.material = material
-        view.blendingMode = blendingMode
+    private var fadeEnd: Double {
+        max(fadeStart, theme.geometry.glassFadeEnd)
     }
 }

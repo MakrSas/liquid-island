@@ -42,7 +42,7 @@ enum PreviewRenderer {
             )
             render(
                 view: shell(theme: theme, style: style, size: hovered) {
-                    CompactMediaView(track: sample, theme: theme)
+                    CompactMediaView(track: sample, theme: theme, showsArtist: true)
                 },
                 size: sizeFor(hovered),
                 to: directory.appendingPathComponent("hovered-\(suffix).png")
@@ -88,20 +88,7 @@ enum PreviewRenderer {
             )
             VStack(spacing: 0) {
                 ZStack {
-                    // ImageRenderer не умеет рисовать NSVisualEffectView,
-                    // поэтому стекло здесь приближаем плотностью заливки.
-                    shape.fill(
-                        theme.palette.background.color
-                            .opacity(theme.palette.useGlass ? theme.palette.glassTint : 1)
-                    )
-                    if theme.palette.useGlass {
-                        shape.fill(
-                            LinearGradient(
-                                colors: [.white.opacity(theme.palette.glassSheen), .white.opacity(0)],
-                                startPoint: .top, endPoint: .center
-                            )
-                        )
-                    }
+                    shape.fill(theme.palette.background.color)
                     shape.strokeBorder(theme.palette.rimLight.color, lineWidth: theme.palette.rimWidth)
                     content()
                         .padding(size.height > theme.geometry.compactSize.height + 12
