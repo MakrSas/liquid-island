@@ -95,14 +95,22 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var detail: some View {
-        Form {
+        VStack(spacing: 0) {
             if pane != .about {
-                SwiftUI.Section {
-                    SettingsPreview(store: store, phase: previewPhase)
-                        .listRowInsets(EdgeInsets())
-                }
+                // Превью закреплено: настраивая размеры и цвета, его нужно
+                // видеть, а не искать прокруткой.
+                SettingsPreview(store: store, phase: previewPhase)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 4)
             }
+            form
+        }
+    }
 
+    @ViewBuilder
+    private var form: some View {
+        Form {
             switch pane ?? .appearance {
             case .appearance: AppearanceSection(store: store)
             case .glass: GlassSection(store: store)
@@ -336,8 +344,9 @@ private struct BehaviorSection: View {
             }
         } header: {
             Text("Наведение")
+            Toggle("Сворачивать кликом мимо", isOn: store.binding(\.behavior.dismissOnOutsideClick))
         } footer: {
-            Text("Раскрытый остров закрывается кликом мимо, а не уводом курсора.")
+            Text("Раскрытый остров не сворачивается от увода курсора — только кликом мимо него или переходом в другое приложение.")
         }
 
         Section("Экран") {

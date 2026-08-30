@@ -59,7 +59,9 @@ struct IslandBody: View {
             )
 
             content
-                .frame(width: size.width, height: size.height)
+                // Прижимаем к верху: если высоты не хватает, обрезаться должен
+                // низ, а не обложка с названием.
+                .frame(width: size.width, height: size.height, alignment: .top)
                 .clipped()
         }
         .frame(width: size.width, height: size.height)

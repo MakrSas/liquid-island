@@ -143,6 +143,9 @@ struct IslandTheme: Codable, Equatable {
         var showLiveActivities: Bool = true
         /// Сколько секунд висит всплывающая активность.
         var liveActivityDuration: Double = 3.0
+        /// Сворачивать раскрытый остров кликом мимо него.
+        var dismissOnOutsideClick: Bool = true
+
         /// На каких экранах показывать остров.
         var displayMode: DisplayMode = .notchedOrMain
         /// Держать форму выреза даже на экранах без чёлки — остров врастает

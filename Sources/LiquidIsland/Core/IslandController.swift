@@ -22,6 +22,8 @@ final class IslandController {
     private var globalMonitor: Any?
     private var localMonitor: Any?
     private var clickMonitor: Any?
+    private var localClickMonitor: Any?
+    private var activationObserver: NSObjectProtocol?
     private var scrollMonitor: Any?
     private var localScrollMonitor: Any?
     private var mouseInside = false
@@ -283,12 +285,41 @@ final class IslandController {
 
         // Раскрытый остров закрывается кликом мимо, а не уводом курсора:
         // иначе им невозможно пользоваться, не удерживая мышь внутри.
-        clickMonitor = NSEvent.addGlobalMonitorForEvents(
-            matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
-        ) { [weak self] _ in
-            guard let self, self.state.phase == .expanded else { return }
+        let outsideClick: (NSEvent) -> Void = { [weak self] _ in
+            guard let self, self.state.theme.behavior.dismissOnOutsideClick else { return }
+            guard self.state.phase == .expanded else { return }
             guard !self.islandScreenRect.contains(NSEvent.mouseLocation) else { return }
             self.state.dismiss()
+        }
+        clickMonitor = NSEvent.addGlobalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown],
+            handler: outsideClick
+        )
+        // Локальный наблюдатель нужен потому, что остров сам делает
+        // приложение активным: клики по нашим же окнам до глобального
+        // наблюдателя не доходят.
+        localClickMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+        ) { event in
+            outsideClick(event)
+            return event
+        }
+        // Переход в другое приложение — тот же сигнал: остров больше не нужен.
+        activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            // Идентификатор достаём здесь, до перехода на главный актор:
+            // само уведомление между потоками передавать нельзя.
+            let pid = (note.userInfo?[NSWorkspace.applicationUserInfoKey]
+                as? NSRunningApplication)?.processIdentifier
+            MainActor.assumeIsolated {
+                guard let self, self.state.theme.behavior.dismissOnOutsideClick else { return }
+                guard self.state.phase == .expanded else { return }
+                guard pid != ProcessInfo.processInfo.processIdentifier else { return }
+                self.state.dismiss()
+            }
         }
     }
 
@@ -321,13 +352,21 @@ final class IslandController {
     func close() {
         glassView?.removeFromSuperview()
         glassView = nil
-        let monitors = [globalMonitor, localMonitor, clickMonitor, scrollMonitor, localScrollMonitor]
+        if let activationObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(activationObserver)
+        }
+        activationObserver = nil
+        let monitors = [
+            globalMonitor, localMonitor, clickMonitor,
+            localClickMonitor, scrollMonitor, localScrollMonitor
+        ]
         for monitor in monitors.compactMap({ $0 }) {
             NSEvent.removeMonitor(monitor)
         }
         globalMonitor = nil
         localMonitor = nil
         clickMonitor = nil
+        localClickMonitor = nil
         scrollMonitor = nil
         localScrollMonitor = nil
         panel.orderOut(nil)
