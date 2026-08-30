@@ -100,6 +100,11 @@ struct CompactMediaView: View {
     /// Она появляется, когда остров подрастает под курсором.
     var showsArtist: Bool = false
 
+    /// Цвет обложки, если его удалось вытянуть, иначе обычный белый.
+    private var accentColor: Color {
+        track.accent.map(Color.init) ?? theme.palette.primaryText.color.opacity(0.9)
+    }
+
     var body: some View {
         HStack(spacing: 8) {
             ArtworkView(
@@ -122,7 +127,7 @@ struct CompactMediaView: View {
             Spacer(minLength: 6)
             WaveformView(
                 isPlaying: track.isPlaying,
-                color: theme.palette.primaryText.color.opacity(0.9),
+                color: accentColor,
                 height: showsArtist ? 14 : 10
             )
         }
@@ -159,7 +164,8 @@ struct ExpandedMediaView: View {
 
                 WaveformView(
                     isPlaying: track.isPlaying,
-                    color: theme.palette.primaryText.color.opacity(0.85),
+                    color: track.accent.map(Color.init)
+                        ?? theme.palette.primaryText.color.opacity(0.85),
                     barCount: 4,
                     height: 16
                 )

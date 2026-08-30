@@ -19,6 +19,7 @@ class MediaHub: ObservableObject {
     private var lastTrackKey: String = ""
     /// Опрос уже идёт — не ставим второй в очередь, если источник тормозит.
     private var polling = false
+    private nonisolated let accentCache = Mutex<(key: String, color: NSColor?)?>(nil)
 
     init() {
         providers = [MediaRemoteProvider(), ScriptingProvider(), SystemAudioProvider()]
@@ -47,7 +48,8 @@ class MediaHub: ObservableObject {
             self.queue.async {
                 var result: (NowPlaying, String)?
                 for provider in providers {
-                    if let value = provider.fetch() {
+                    if var value = provider.fetch() {
+                        value.accent = self.accent(for: value)
                         result = (value, provider.displayName)
                         break
                     }
@@ -72,6 +74,18 @@ class MediaHub: ObservableObject {
         }
         if value.isEmpty { lastTrackKey = "" }
         if value != nowPlaying { nowPlaying = value }
+    }
+
+    /// Разбор обложки стоит недёшево, а меняется она только вместе с треком.
+    private nonisolated func accent(for track: NowPlaying) -> NSColor? {
+        guard let artwork = track.artwork else { return nil }
+        let key = "\(track.title)|\(track.artist)"
+        return accentCache.withLock { cache in
+            if cache?.key == key { return cache?.color }
+            let color = ArtworkColor.accent(from: artwork)
+            cache = (key, color)
+            return color
+        }
     }
 
     /// Подставить трек вручную — используется рендерером превью.

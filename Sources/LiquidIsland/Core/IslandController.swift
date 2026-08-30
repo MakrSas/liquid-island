@@ -13,6 +13,7 @@ final class IslandController {
     private var bag = Set<AnyCancellable>()
     private var globalMonitor: Any?
     private var localMonitor: Any?
+    private var clickMonitor: Any?
     private var mouseInside = false
 
     init(screen: NSScreen, media: MediaHub, themeStore: ThemeStore = .shared) {
@@ -101,11 +102,23 @@ final class IslandController {
             self?.syncMouseRegion()
             return event
         }
+        // Раскрытый остров закрывается кликом мимо, а не уводом курсора:
+        // иначе им невозможно пользоваться, не удерживая мышь внутри.
+        clickMonitor = NSEvent.addGlobalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+        ) { [weak self] _ in
+            guard let self, self.state.phase == .expanded else { return }
+            guard !self.islandScreenRect.contains(NSEvent.mouseLocation) else { return }
+            self.state.dismiss()
+        }
     }
 
     /// Обновляет и проходимость окна, и фазу острова — одним решением,
     /// чтобы они не могли разойтись.
     private func syncMouseRegion() {
+        // Проходимость всегда считается по фигуре острова, даже когда он
+        // раскрыт: клик мимо должен и дойти до приложения под нами, и закрыть
+        // остров — этим занимается отдельный наблюдатель за нажатиями.
         let inside = islandScreenRect.contains(NSEvent.mouseLocation)
         if panel.ignoresMouseEvents == inside {
             panel.ignoresMouseEvents = !inside
@@ -120,10 +133,12 @@ final class IslandController {
     }
 
     func close() {
-        if let globalMonitor { NSEvent.removeMonitor(globalMonitor) }
-        if let localMonitor { NSEvent.removeMonitor(localMonitor) }
+        for monitor in [globalMonitor, localMonitor, clickMonitor].compactMap({ $0 }) {
+            NSEvent.removeMonitor(monitor)
+        }
         globalMonitor = nil
         localMonitor = nil
+        clickMonitor = nil
         panel.orderOut(nil)
     }
 }

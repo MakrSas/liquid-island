@@ -13,6 +13,8 @@ struct NowPlaying: Equatable {
     /// Можно ли отсюда управлять воспроизведением. У источников, найденных
     /// только по звуку, кнопок нет — управлять нечем.
     var supportsTransport: Bool = true
+    /// Цвет, вытянутый из обложки: им подсвечивается эквалайзер.
+    var accent: NSColor?
 
     static let empty = NowPlaying(
         title: "", artist: "", album: "", artwork: nil,
@@ -35,6 +37,7 @@ struct NowPlaying: Equatable {
         abs(lhs.elapsed - rhs.elapsed) < 0.5 &&
         lhs.sourceBundleID == rhs.sourceBundleID &&
         lhs.supportsTransport == rhs.supportsTransport &&
+        lhs.accent == rhs.accent &&
         lhs.artwork === rhs.artwork
     }
 }

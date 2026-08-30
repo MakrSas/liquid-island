@@ -29,11 +29,11 @@ struct IslandTheme: Codable, Equatable {
         var glassFadeEnd: Double = 0.98
 
         /// Радиус верхних углов (в режиме чёлки — «вывернутых» наружу).
-        var topRadius: CGFloat = 10
+        var topRadius: CGFloat = 9
         /// Радиус нижних углов в покое.
-        var bottomRadiusClosed: CGFloat = 14
+        var bottomRadiusClosed: CGFloat = 12
         /// Радиус нижних углов, когда остров раскрыт.
-        var bottomRadiusOpen: CGFloat = 24
+        var bottomRadiusOpen: CGFloat = 15
 
         /// Отступ от верхней кромки экрана. Ноль — остров врастает в кромку,
         /// как аппаратный вырез на новых маках. Больше нуля — «летит» под ней.
@@ -60,7 +60,7 @@ struct IslandTheme: Codable, Equatable {
         /// Показывать ли стекло в нижней части раскрытого острова.
         var useLiquidGlass: Bool = true
         /// Стиль нативного Liquid Glass.
-        var glassStyle: GlassStyle = .regular
+        var glassStyle: GlassStyle = .clear
         /// Подкраска стекла. Пусто — чистое системное стекло.
         var glassTint: CodableColor? = nil
         /// Отклик стекла на наведение и нажатие.

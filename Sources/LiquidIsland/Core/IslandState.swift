@@ -114,6 +114,8 @@ final class IslandState: ObservableObject {
 
     func mouseExited() {
         cancelHoverWork()
+        // Раскрытый остров уводом курсора не закрывается — только кликом мимо.
+        guard phase != .expanded else { return }
         let work = DispatchWorkItem { [weak self] in self?.transition(to: .closed) }
         hoverCloseWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + theme.behavior.hoverCloseDelay, execute: work)
@@ -121,7 +123,13 @@ final class IslandState: ObservableObject {
 
     func toggle() {
         cancelHoverWork()
-        transition(to: phase == .expanded ? .closed : .expanded)
+        transition(to: phase == .expanded ? .hovered : .expanded)
+    }
+
+    /// Клик мимо острова — единственный способ его свернуть.
+    func dismiss() {
+        cancelHoverWork()
+        transition(to: .closed)
     }
 
     private func cancelHoverWork() {
