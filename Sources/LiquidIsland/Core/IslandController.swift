@@ -13,8 +13,8 @@ final class IslandController {
     private var glassView: IslandGlassView?
     private weak var glassContainer: NSView?
     private var frameBox: FrameBox?
-    /// Последний кадр острова, присланный из SwiftUI.
-    private var lastIslandFrame: CGRect = .zero
+    /// Последний размер острова, присланный из SwiftUI.
+    private var lastIslandSize: CGSize = .zero
     /// Кому вернуть фокус, когда остров свернётся.
     private var previousApp: NSRunningApplication?
     private var bag = Set<AnyCancellable>()
@@ -46,7 +46,7 @@ final class IslandController {
             audio: media.levels
         )
         let box = FrameBox()
-        root.onFrameChange = { [box] frame in box.handler?(frame) }
+        root.onSizeChange = { [box] size in box.handler?(size) }
         host = IslandHostingView(rootView: AnyView(root))
         self.frameBox = box
         host.frame = CGRect(origin: .zero, size: frame.size)
@@ -79,13 +79,10 @@ final class IslandController {
 
         // Стекло следует за островом кадр в кадр: своя анимация всегда лишь
         // приблизительно похожа на пружину SwiftUI, и рассинхрон видно рывком.
-        frameBox?.handler = { [weak self] frame in
+        frameBox?.handler = { [weak self] size in
             guard let self else { return }
-            self.lastIslandFrame = frame
-            if ProcessInfo.processInfo.environment["LIQUID_ISLAND_DEBUG"] == "1" {
-                print("кадр острова: \(frame)  host=\(self.host.bounds.size)")
-            }
-            self.positionGlass(islandFrameInHost: frame)
+            self.lastIslandSize = size
+            self.positionGlass(islandSize: size)
         }
         installMouseMonitors()
         syncMouseRegion()
@@ -163,7 +160,7 @@ final class IslandController {
         glassView = fresh
         // Обновление кадра из SwiftUI могло прийти до создания слоя — тогда
         // он остался бы нулевого размера и стекла просто не было бы видно.
-        positionGlass(islandFrameInHost: lastIslandFrame)
+        positionGlass(islandSize: lastIslandSize)
     }
 
     /// Возвращает фокус тому приложению, которое было впереди до раскрытия.
@@ -176,25 +173,27 @@ final class IslandController {
         previousApp.activate()
     }
 
-    /// Ставит стекло точно под остров. Кадр приходит из SwiftUI на каждом
-    /// шаге анимации, поэтому собственная анимация здесь не нужна — и вредна:
-    /// она бы догоняла уже посчитанное положение.
-    private func positionGlass(islandFrameInHost rect: CGRect) {
-        guard let glassView, rect.width > 0, rect.height > 0 else { return }
-        // SwiftUI считает сверху вниз, AppKit — снизу вверх.
-        let converted = CGRect(
-            x: rect.minX,
-            y: host.bounds.height - rect.maxY,
-            width: rect.width,
-            height: rect.height
+    /// Кадр стекла в координатах контейнера. AppKit считает снизу вверх,
+    /// остров прижат к верхней кромке и отцентрован.
+    private func glassFrame(for size: CGSize) -> CGRect {
+        let bounds = host.bounds
+        return CGRect(
+            x: bounds.midX - size.width / 2,
+            y: bounds.maxY - size.height - state.theme.geometry.floatingTopInset,
+            width: size.width,
+            height: size.height
         )
+    }
+
+    /// Ставит стекло точно под остров. Размер приходит из SwiftUI на каждом
+    /// шаге пружины, поэтому собственная анимация здесь не нужна — и вредна:
+    /// она бы догоняла уже посчитанное положение.
+    private func positionGlass(islandSize size: CGSize) {
+        guard let glassView, size.width > 0, size.height > 0 else { return }
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        glassView.frame = converted
+        glassView.frame = glassFrame(for: size)
         CATransaction.commit()
-        if ProcessInfo.processInfo.environment["LIQUID_ISLAND_DEBUG"] == "1" {
-            print("стекло -> \(converted) hidden=\(glassView.isHidden) super=\(glassView.superview != nil)")
-        }
     }
 
     // MARK: - Мышь

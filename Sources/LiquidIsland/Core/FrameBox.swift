@@ -6,5 +6,5 @@ import Foundation
 /// коробка позволяет подставить обработчик позже, не пересобирая иерархию.
 @MainActor
 final class FrameBox {
-    var handler: ((CGRect) -> Void)?
+    var handler: ((CGSize) -> Void)?
 }

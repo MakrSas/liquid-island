@@ -5,8 +5,8 @@ struct IslandRootView: View {
     @ObservedObject var media: MediaHub
     @ObservedObject var themeStore: ThemeStore = .shared
     @ObservedObject var audio: AudioLevels
-    /// Вызывается на каждом кадре анимации с текущим кадром острова.
-    var onFrameChange: (CGRect) -> Void = { _ in }
+    /// Вызывается на каждом кадре анимации с текущим размером острова.
+    var onSizeChange: (CGSize) -> Void = { _ in }
 
     private var theme: IslandTheme { themeStore.theme }
     private var size: CGSize { state.size }
@@ -19,10 +19,6 @@ struct IslandRootView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         // По умолчанию ноль: остров врастает в кромку экрана, а не висит под ней.
         .padding(.top, theme.geometry.floatingTopInset)
-    }
-
-    private func reportFrame(_ frame: CGRect) {
-        onFrameChange(frame)
     }
 
     private var shape: IslandShape {
@@ -65,18 +61,7 @@ struct IslandRootView: View {
         }
         .frame(width: size.width, height: size.height)
         // Стекло живёт в AppKit и должно идти за островом кадр в кадр.
-        // SwiftUI пересчитывает это значение на каждом шаге пружины.
-        .background(
-            GeometryReader { proxy in
-                // Преференсы из background наружу не выходят, поэтому берём
-                // кадр прямо здесь: onChange пересчитывается на каждом
-                // проходе разметки, то есть на каждом шаге анимации.
-                let frame = proxy.frame(in: .global)
-                Color.clear
-                    .onAppear { reportFrame(frame) }
-                    .onChange(of: frame) { _, new in reportFrame(new) }
-            }
-        )
+        .reportingAnimatedSize(size) { animated in onSizeChange(animated) }
         .shadow(
             color: .black.opacity(state.phase == .expanded ? 0.4 : 0),
             radius: 18, x: 0, y: 8
