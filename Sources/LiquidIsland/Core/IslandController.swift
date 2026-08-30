@@ -13,6 +13,8 @@ final class IslandController {
     private var glassView: IslandGlassView?
     private weak var glassContainer: NSView?
     private var frameBox: FrameBox?
+    /// Последний кадр острова, присланный из SwiftUI.
+    private var lastIslandFrame: CGRect = .zero
     private var bag = Set<AnyCancellable>()
     private var globalMonitor: Any?
     private var localMonitor: Any?
@@ -76,7 +78,9 @@ final class IslandController {
         // Стекло следует за островом кадр в кадр: своя анимация всегда лишь
         // приблизительно похожа на пружину SwiftUI, и рассинхрон видно рывком.
         frameBox?.handler = { [weak self] frame in
-            self?.positionGlass(islandFrameInHost: frame)
+            guard let self else { return }
+            self.lastIslandFrame = frame
+            self.positionGlass(islandFrameInHost: frame)
         }
         installMouseMonitors()
         syncMouseRegion()
@@ -141,6 +145,9 @@ final class IslandController {
         )
         glassContainer?.addSubview(fresh, positioned: .below, relativeTo: host)
         glassView = fresh
+        // Обновление кадра из SwiftUI могло прийти до создания слоя — тогда
+        // он остался бы нулевого размера и стекла просто не было бы видно.
+        positionGlass(islandFrameInHost: lastIslandFrame)
     }
 
     /// Ставит стекло точно под остров. Кадр приходит из SwiftUI на каждом
