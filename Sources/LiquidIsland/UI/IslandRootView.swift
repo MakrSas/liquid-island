@@ -6,7 +6,7 @@ struct IslandRootView: View {
     @ObservedObject var themeStore: ThemeStore = .shared
     @ObservedObject var audio: AudioLevels
     /// Вызывается на каждом кадре анимации с текущим размером острова.
-    var onSizeChange: (CGSize) -> Void = { _ in }
+    var onSizeChange: @Sendable (CGSize) -> Void = { _ in }
 
     private var theme: IslandTheme { themeStore.theme }
     private var size: CGSize { state.size }
@@ -61,7 +61,7 @@ struct IslandRootView: View {
         }
         .frame(width: size.width, height: size.height)
         // Стекло живёт в AppKit и должно идти за островом кадр в кадр.
-        .reportingAnimatedSize(size) { animated in onSizeChange(animated) }
+        .reportingAnimatedSize(size, to: onSizeChange)
         .shadow(
             color: .black.opacity(state.phase == .expanded ? 0.4 : 0),
             radius: 18, x: 0, y: 8

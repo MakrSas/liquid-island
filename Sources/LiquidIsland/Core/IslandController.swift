@@ -46,7 +46,9 @@ final class IslandController {
             audio: media.levels
         )
         let box = FrameBox()
-        root.onSizeChange = { [box] size in box.handler?(size) }
+        root.onSizeChange = { [box] size in
+            MainActor.assumeIsolated { box.handler?(size) }
+        }
         host = IslandHostingView(rootView: AnyView(root))
         self.frameBox = box
         host.frame = CGRect(origin: .zero, size: frame.size)
@@ -79,10 +81,15 @@ final class IslandController {
 
         // Стекло следует за островом кадр в кадр: своя анимация всегда лишь
         // приблизительно похожа на пружину SwiftUI, и рассинхрон видно рывком.
-        frameBox?.handler = { [weak self] size in
+        frameBox?.handler = { @Sendable [weak self] size in
+            MainActor.assumeIsolated {
             guard let self else { return }
             self.lastIslandSize = size
+            if ProcessInfo.processInfo.environment["LIQUID_ISLAND_DEBUG"] == "1" {
+                print("размер острова: \(size) стекло=\(self.glassView != nil)")
+            }
             self.positionGlass(islandSize: size)
+            }
         }
         installMouseMonitors()
         syncMouseRegion()
