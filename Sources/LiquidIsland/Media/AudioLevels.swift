@@ -26,9 +26,12 @@ final class AudioTapSession: @unchecked Sendable {
     private var aggregateID = AudioObjectID(kAudioObjectUnknown)
     private var ioProcID: AudioDeviceIOProcID?
     private let frameCount: Int
+    /// Какие процессы слушаем. Пусто — весь выход системы.
+    private let processes: [AudioObjectID]
 
-    init(frameCount: Int) {
+    init(frameCount: Int, processes: [AudioObjectID] = []) {
         self.frameCount = frameCount
+        self.processes = processes
         samples = Guarded([Float](repeating: 0, count: frameCount))
     }
 
@@ -59,8 +62,12 @@ final class AudioTapSession: @unchecked Sendable {
     }
 
     private func createTap() -> Bool {
-        // Глобальный отвод: слушаем всё, что уходит на выход.
-        let description = CATapDescription(stereoGlobalTapButExcludeProcesses: [])
+        // Отвод либо на весь выход, либо на конкретные процессы. Второе нужно,
+        // чтобы отличать «это приложение играет» от «где-то в системе есть
+        // звук»: без разделения браузер на фоне выдаётся за плеер на паузе.
+        let description = processes.isEmpty
+            ? CATapDescription(stereoGlobalTapButExcludeProcesses: [])
+            : CATapDescription(stereoMixdownOfProcesses: processes)
         description.name = "LiquidIsland"
         description.isPrivate = true
         // Отвод не должен глушить звук — мы только слушаем.
@@ -226,11 +233,13 @@ final class AudioLevels: ObservableObject {
                             radix: .radix2, ofType: DSPSplitComplex.self)
     }
 
-    func start() {
+    /// `processes` пусто — слушаем весь выход, иначе только эти процессы.
+    func start(processes: [AudioObjectID] = []) {
         guard !isRunning else { return }
-        let session = AudioTapSession(frameCount: fftSize)
+        let session = AudioTapSession(frameCount: fftSize, processes: processes)
         guard session.start() else { return }
         self.session = session
+        currentProcesses = processes
         isRunning = true
 
         // Перекладываем сырые кадры в полосы с частотой экрана, а не потока.
@@ -240,6 +249,15 @@ final class AudioLevels: ObservableObject {
         RunLoop.main.add(timer, forMode: .common)
         displayTimer = timer
     }
+
+    /// Переключить отвод на другие процессы, не роняя всё остальное.
+    func retarget(to processes: [AudioObjectID]) {
+        guard isRunning, processes != currentProcesses else { return }
+        stop()
+        start(processes: processes)
+    }
+
+    private(set) var currentProcesses: [AudioObjectID] = []
 
     func stop() {
         displayTimer?.invalidate()

@@ -19,6 +19,21 @@ final class SystemAudioProvider: MediaProvider {
 
     func isAvailable() -> Bool { playingApplication() != nil }
 
+    /// Кандидаты — все приложения, держащие выход открытым, вместе с их
+    /// объектами процесса: по ним можно отвести звук конкретного приложения,
+    /// а не всей системы.
+    func candidates() -> [(app: NSRunningApplication, process: AudioObjectID)] {
+        var found: [(NSRunningApplication, AudioObjectID)] = []
+        for object in processObjects() {
+            guard isRunningOutput(object), let pid = pid(of: object) else { continue }
+            guard let app = NSRunningApplication(processIdentifier: pid) else { continue }
+            guard let bundle = app.bundleIdentifier, !ignoredBundleIDs.contains(bundle) else { continue }
+            guard bundle != Bundle.main.bundleIdentifier else { continue }
+            found.append((app, object))
+        }
+        return found
+    }
+
     func fetch() -> NowPlaying? {
         guard let app = playingApplication() else { return nil }
         return NowPlaying(
@@ -41,15 +56,12 @@ final class SystemAudioProvider: MediaProvider {
     // MARK: - CoreAudio
 
     private func playingApplication() -> NSRunningApplication? {
-        for object in processObjects() {
-            guard isRunningOutput(object), let pid = pid(of: object) else { continue }
-            guard let app = NSRunningApplication(processIdentifier: pid) else { continue }
-            guard let bundle = app.bundleIdentifier, !ignoredBundleIDs.contains(bundle) else { continue }
-            // Своё же приложение источником считать нельзя.
-            guard bundle != Bundle.main.bundleIdentifier else { continue }
-            return app
-        }
-        return nil
+        candidates().first?.app
+    }
+
+    /// Объект процесса для конкретного приложения.
+    func process(for bundleID: String) -> AudioObjectID? {
+        candidates().first { $0.app.bundleIdentifier == bundleID }?.process
     }
 
     private func processObjects() -> [AudioObjectID] {

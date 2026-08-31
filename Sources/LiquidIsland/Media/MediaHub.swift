@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import CoreAudio
 
 /// Собирает Now Playing из доступных источников и держит его актуальным.
 ///
@@ -24,8 +25,10 @@ class MediaHub: ObservableObject {
     private var polling = false
     private nonisolated let accentCache = Guarded<(key: String, color: NSColor?)?>(nil)
 
+    private let audioProvider = SystemAudioProvider()
+
     init() {
-        providers = [MediaRemoteProvider(), ScriptingProvider(), SystemAudioProvider()]
+        providers = [MediaRemoteProvider(), ScriptingProvider(), audioProvider]
     }
 
     func start(interval: TimeInterval = 1.0) {
@@ -91,14 +94,37 @@ class MediaHub: ObservableObject {
         if value.isEmpty { lastTrackKey = "" }
         if value != nowPlaying { nowPlaying = value }
 
-        // Отвод держим, пока источник вообще есть: у найденного по звуку
-        // именно отвод и отвечает на вопрос, играет ли он. Останавливать его
-        // по паузе значило бы отключать то, чем мы паузу и определяем.
+        updateTap(for: value)
+    }
+
+    /// Решает, что слушать отводом.
+    ///
+    /// Для источника, найденного по звуку, отвод наводится на его собственный
+    /// процесс. Иначе выходит нелепость: имя берётся у одного приложения, а
+    /// сигнал — со всего выхода, и браузер на фоне выдаёт паузу плеера за
+    /// воспроизведение.
+    private func updateTap(for value: NowPlaying) {
+        // Отвод держим, пока источник есть: у найденного по звуку именно он
+        // и отвечает на вопрос, играет ли тот. Останавливать его по паузе
+        // значило бы отключать то, чем пауза и определяется.
         let needsTap = value.isPlaying || (!value.isEmpty && !value.supportsTransport)
-        if needsTap, !levels.isRunning {
-            levels.start()
-        } else if !needsTap, levels.isRunning {
-            levels.stop()
+        guard needsTap else {
+            if levels.isRunning { levels.stop() }
+            return
+        }
+
+        // Скриптуемые плееры сами говорят, что играют, — там отвод нужен
+        // только для эквалайзера, и слушать можно весь выход.
+        var target: [AudioObjectID] = []
+        if !value.supportsTransport, let bundleID = value.sourceBundleID,
+           let process = audioProvider.process(for: bundleID) {
+            target = [process]
+        }
+
+        if levels.isRunning {
+            levels.retarget(to: target)
+        } else {
+            levels.start(processes: target)
         }
     }
 
