@@ -6,6 +6,7 @@ import IOKit.ps
 /// Здесь всё публично — IOKit сам будит нас, когда состояние меняется.
 final class PowerMonitor: @unchecked Sendable {
     private var source: CFRunLoopSource?
+    private var pollTimer: DispatchSourceTimer?
     private var lastPlugged: Bool?
     /// Порог, ниже которого уже предупреждали: иначе на каждом проценте
     /// вылезала бы новая плашка.
@@ -29,6 +30,21 @@ final class PowerMonitor: @unchecked Sendable {
     func start() {
         lastPlugged = Self.state()?.plugged
 
+        // IOKit будит нас при смене состояния, но если приложение запустили
+        // уже на низком заряде, будить его не с чего — проверяем сразу.
+        if let state = Self.state() { checkLowBattery(state) }
+
+        // И дальше проверяем сами: уведомления о проценте приходят редко и
+        // не гарантированы, а порог мы можем и проспать.
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now() + 60, repeating: 60, leeway: .seconds(10))
+        timer.setEventHandler { [weak self] in
+            guard let self, let state = Self.state() else { return }
+            self.checkLowBattery(state)
+        }
+        timer.resume()
+        pollTimer = timer
+
         let context = Unmanaged.passUnretained(self).toOpaque()
         guard let source = IOPSNotificationCreateRunLoopSource({ context in
             guard let context else { return }
@@ -41,6 +57,8 @@ final class PowerMonitor: @unchecked Sendable {
     }
 
     func stop() {
+        pollTimer?.cancel()
+        pollTimer = nil
         guard let source else { return }
         CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .defaultMode)
         self.source = nil

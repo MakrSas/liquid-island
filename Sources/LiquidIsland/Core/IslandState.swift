@@ -165,6 +165,7 @@ final class IslandState: ObservableObject {
 
     /// Пришёл горизонтальный сдвиг с тачпада.
     func swipe(by delta: CGFloat) {
+        // В раскрытом виде свайп не нужен: там листать нечего, всё на виду.
         guard phase != .expanded else { return }
         guard hasMedia || activities.pageCount > 1 else { return }
         // При нескольких активностях тянуть можно в обе стороны — это листание.

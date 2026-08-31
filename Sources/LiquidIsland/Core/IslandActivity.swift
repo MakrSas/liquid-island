@@ -60,7 +60,10 @@ final class ActivityCenter: ObservableObject {
         list.append(contentsOf: media.sources.map { .media($0) })
 
         list.sort { left, right in
-            // Закреплённая идёт первой, дальше по приоритету.
+            // Системное событие перебивает закрепление: громкость и яркость
+            // человек меняет прямо сейчас и ждёт увидеть именно их.
+            if case .system = left, case .media = right { return true }
+            if case .media = left, case .system = right { return false }
             if left.id == pinned { return true }
             if right.id == pinned { return false }
             return left.priority > right.priority

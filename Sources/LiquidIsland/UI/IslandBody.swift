@@ -109,9 +109,10 @@ struct IslandBody: View {
         return base.tint(tint.color)
     }
 
-    /// Есть ли что показывать точками: в пустом острове их быть не должно.
+    /// Точки нужны там, где ими пользуются: под курсором и в раскрытом виде.
+    /// В покое остров должен оставаться спокойным.
     var showsDots: Bool {
-        pageCount > 1 && (hudEvent != nil || showsMedia || phase == .expanded)
+        pageCount > 1 && phase != .closed
     }
 
     private var pageDots: some View {

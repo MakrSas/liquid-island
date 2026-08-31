@@ -326,6 +326,17 @@ private struct BehaviorSection: View {
 
     var body: some View {
         Section {
+            Picker("Точки активностей", selection: store.binding(\.behavior.dotsPlacement)) {
+                Text("Внутри карточки").tag(IslandTheme.DotsPlacement.inside)
+                Text("Капсулой снизу").tag(IslandTheme.DotsPlacement.below)
+            }
+        } header: {
+            Text("Несколько активностей")
+        } footer: {
+            Text("Точки показывают, сколько источников звучит сейчас. Листать между ними можно свайпом по тачпаду.")
+        }
+
+        Section {
             Toggle("Показывать трек при наведении", isOn: store.binding(\.behavior.hoverShowsMedia))
             Toggle("Раскрывать по наведению", isOn: store.binding(\.behavior.expandOnHover))
             if store.theme.behavior.expandOnHover {
@@ -377,10 +388,16 @@ private struct HUDSection: View {
             Toggle("Громкость", isOn: store.binding(\.behavior.showVolumeHUD))
             Toggle("Яркость", isOn: store.binding(\.behavior.showBrightnessHUD))
             Toggle("Подключение зарядки", isOn: store.binding(\.behavior.showPowerHUD))
+            Toggle("Низкий заряд", isOn: store.binding(\.behavior.showLowBatteryWarning))
+            if store.theme.behavior.showLowBatteryWarning {
+                Stepper(value: store.binding(\.behavior.lowBatteryThreshold), in: 5...50, step: 5) {
+                    Text("Предупреждать при \(store.theme.behavior.lowBatteryThreshold)%")
+                }
+            }
         } header: {
             Text("Показывать")
         } footer: {
-            Text("Плашка питания срабатывает на подключение и отключение — уровень заряда меняется постоянно, и показывать её на каждый процент было бы шумом.")
+            Text("Плашка питания срабатывает на подключение и отключение — уровень заряда меняется постоянно, и показывать её на каждый процент было бы шумом. О низком заряде предупреждаем только когда питание отключено: на зарядке это лишнее.")
         }
 
         Section("Вид") {
