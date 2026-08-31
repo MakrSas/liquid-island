@@ -39,13 +39,14 @@ struct IslandRootView: View {
             swipeOffset: state.swipeOffset,
             swipeFade: state.swipeFade
         )
-        return VStack(spacing: 0) {
+        // Капсула не в потоке разметки, а наложением с явным сдвигом.
+        // В VStack её положение зависело от перестройки соседа: остров
+        // сжимался, и SwiftUI уводил её вслед за этим — вбок, а не вверх.
+        return ZStack(alignment: .top) {
             body
             body.dotsCapsule
+                .offset(y: size.height + theme.geometry.dotsCapsuleGap)
         }
-        // Капсула появляется и уходит той же пружиной, что и остров.
-        .animation(theme.motion.open, value: state.activities.pageCount)
-        .animation(theme.motion.close, value: state.phase)
         // Слой стекла живёт в AppKit и берёт размер отсюда: Shape сообщает
         // его на каждом кадре пружины, поэтому стекло идёт с островом в ногу.
         .reportingAnimatedSize(size, to: onSizeChange)

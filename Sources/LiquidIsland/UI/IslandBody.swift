@@ -102,18 +102,13 @@ struct IslandBody: View {
                         Capsule().fill(theme.palette.background.color)
                     }
                 }
-                .padding(.top, theme.geometry.dotsCapsuleGap)
-                // Уходит вверх, под остров, а не вбок: по умолчанию SwiftUI
-                // уводит вьюху туда, куда сожмётся разметка, и капсула
-                // уезжала вправо.
+                // Уходит вверх, под остров: сдвиг и уменьшение к верхнему
+                // краю, без участия разметки.
                 .transition(
-                    .move(edge: .top)
+                    .offset(y: -14)
                         .combined(with: .opacity)
-                        .combined(with: .scale(scale: 0.8, anchor: .top))
+                        .combined(with: .scale(scale: 0.7, anchor: .top))
                 )
-                // Ширина полосы не зависит от острова: иначе капсула ехала бы
-                // вбок вместе с ним, пока он меняет размер.
-                .frame(maxWidth: .infinity)
         }
     }
 
