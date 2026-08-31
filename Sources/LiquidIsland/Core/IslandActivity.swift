@@ -74,6 +74,33 @@ final class ActivityCenter: ObservableObject {
         pinned = pinned == activity.id ? nil : activity.id
     }
 
+    /// Пролистать на соседнюю активность. Порядок берём без учёта
+    /// закрепления, иначе список перестраивался бы на каждом шаге и листание
+    /// ходило бы по кругу из двух элементов.
+    func step(_ direction: Int) {
+        let ordered = naturalOrder
+        guard ordered.count > 1 else { return }
+        let current = ordered.firstIndex { $0.id == (pinned ?? ordered.first?.id) } ?? 0
+        let next = (current + direction + ordered.count) % ordered.count
+        pinned = ordered[next].id
+    }
+
+    /// Порядок по важности, без закрепления.
+    private var naturalOrder: [IslandActivity] {
+        var list: [IslandActivity] = []
+        if let event = hud.event { list.append(.system(event)) }
+        if !media.nowPlaying.isEmpty { list.append(.media(media.nowPlaying)) }
+        return list.sorted { $0.priority > $1.priority }
+    }
+
+    /// Сколько всего активностей и какая по счёту показана.
+    var pageCount: Int { naturalOrder.count }
+
+    var pageIndex: Int {
+        guard let primary else { return 0 }
+        return naturalOrder.firstIndex { $0.id == primary.id } ?? 0
+    }
+
     /// Закрепление живёт, только пока активность существует.
     func forgetMissingPin() {
         guard let pinned else { return }

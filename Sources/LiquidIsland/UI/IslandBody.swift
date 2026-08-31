@@ -16,10 +16,9 @@ struct IslandBody: View {
     var levels: [Float] = []
     /// Плашка системного события, если она сейчас важнее трека.
     var hudEvent: SystemEvent?
-    /// Активности, которые сейчас не главные, — показываем значками.
-    var badges: [IslandActivity] = []
-    /// Нажатие по значку выводит активность вперёд.
-    var onBadgeTap: (IslandActivity) -> Void = { _ in }
+    /// Сколько всего активностей и какая показана — под них рисуются точки.
+    var pageCount: Int = 0
+    var pageIndex: Int = 0
     /// Сдвиг и прозрачность на свайпе.
     var swipeOffset: CGFloat = 0
     var swipeFade: Double = 1
@@ -62,35 +61,33 @@ struct IslandBody: View {
                     .opacity(showsMedia || phase != .closed ? 1 : 0)
             )
 
-            HStack(spacing: 8) {
-                content
-                // Остальные активности живут значками у правого края: так их
-                // видно все сразу, а не по очереди.
-                if !badges.isEmpty {
-                    ForEach(badges) { activity in
-                        Button {
-                            onBadgeTap(activity)
-                        } label: {
-                            Image(systemName: activity.badgeIcon)
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(theme.palette.secondaryText.color)
-                                .frame(width: 18, height: 18)
-                                .background(
-                                    Circle().fill(theme.palette.rimLight.color.opacity(0.5))
-                                )
-                        }
-                        .buttonStyle(.plain)
-                        .help("Показать эту активность")
-                    }
-                    .padding(.trailing, theme.geometry.compactPadding.trailing)
-                }
+            content
+                // Прижимаем к верху: если высоты не хватает, обрезаться должен
+                // низ, а не обложка с названием.
+                .frame(width: size.width, height: size.height, alignment: .top)
+                .clipped()
+
+            // Точки внизу — как в постраничном просмотре: видно, что активностей
+            // несколько, и какая из них сейчас открыта.
+            if pageCount > 1 {
+                pageDots
+                    .frame(width: size.width, height: size.height, alignment: .bottom)
+                    .padding(.bottom, 3)
             }
-            // Прижимаем к верху: если высоты не хватает, обрезаться должен
-            // низ, а не обложка с названием.
-            .frame(width: size.width, height: size.height, alignment: .top)
-            .clipped()
         }
         .frame(width: size.width, height: size.height)
+    }
+
+    private var pageDots: some View {
+        HStack(spacing: 4) {
+            ForEach(0..<pageCount, id: \.self) { index in
+                Circle()
+                    .fill(theme.palette.primaryText.color)
+                    .opacity(index == pageIndex ? 0.9 : 0.3)
+                    .frame(width: 4, height: 4)
+            }
+        }
+        .animation(theme.motion.content, value: pageIndex)
     }
 
     @ViewBuilder

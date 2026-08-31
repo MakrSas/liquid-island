@@ -120,11 +120,7 @@ final class IslandState: ObservableObject {
         }
     }
 
-    /// Значки активностей, которые сейчас не главные.
-    var badges: [IslandActivity] {
-        guard phase != .expanded else { return [] }
-        return activities.others
-    }
+
 
     /// Размер в покое: плашка события, карточка трека или узкая пилюля.
     var restingSize: CGSize {
@@ -157,9 +153,13 @@ final class IslandState: ObservableObject {
 
     /// Пришёл горизонтальный сдвиг с тачпада.
     func swipe(by delta: CGFloat) {
-        guard phase != .expanded, hasMedia else { return }
-        // Вправо смахиваем показанную карточку, влево — возвращаем спрятанную.
-        let allowed = isDismissed ? min(delta, 0) : max(delta, 0)
+        guard phase != .expanded else { return }
+        guard hasMedia || activities.pageCount > 1 else { return }
+        // При нескольких активностях тянуть можно в обе стороны — это листание.
+        // С одной: вправо смахиваем карточку, влево возвращаем спрятанную.
+        let allowed = activities.pageCount > 1
+            ? delta
+            : (isDismissed ? min(delta, 0) : max(delta, 0))
         swipeOffset += allowed
         // Дальше порога тянуть некуда: пусть сопротивляется.
         let limit = Self.swipeThreshold * 1.5
@@ -167,11 +167,22 @@ final class IslandState: ObservableObject {
     }
 
     /// Палец с тачпада убрали — решаем, сработал жест или нет.
+    ///
+    /// Когда активностей несколько, свайп листает их: убирать карточку в
+    /// такой момент значит терять то, что человек как раз пытается посмотреть.
+    /// С одной активностью жест работает по-старому и смахивает её.
     func endSwipe() {
         guard swipeOffset != 0 else { return }
         let passed = abs(swipeOffset) >= Self.swipeThreshold
+        let direction = swipeOffset > 0 ? 1 : -1
         withAnimation(theme.motion.open) {
-            if passed { isDismissed.toggle() }
+            if passed {
+                if activities.pageCount > 1 {
+                    activities.step(direction)
+                } else {
+                    isDismissed.toggle()
+                }
+            }
             swipeOffset = 0
         }
     }
