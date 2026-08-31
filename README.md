@@ -1,142 +1,117 @@
 # Liquid Island
 
-Dynamic Island с iPhone — на macOS. Открытый, бесплатный и настраиваемый.
+The iPhone's Dynamic Island, on macOS. Open, free and configurable.
 
-*[In English](README.en.md)*
+*[Русская версия](README.ru.md)*
 
-Остров врастает в верхнюю кромку экрана: на маках с чёлкой он от неё
-неотличим, на остальных занимает её место. Показывает, что играет, реагирует
-на громкость, яркость и зарядку, а в раскрытом виде показывает плеер с
-настоящим жидким стеклом macOS.
+The island grows out of the top edge of the screen: on Macs with a notch it is
+indistinguishable from it, on the rest it takes its place. It shows what's
+playing, reacts to volume, brightness and power, and expands into a player with
+real macOS Liquid Glass.
 
-![Остров в покое](docs/idle.png)
+![The island at rest](docs/idle.png)
 
-В покое остров неотличим от чёлки. Стоит начать играть музыке — показывает трек:
+At rest the island is indistinguishable from a notch. Start playing something
+and it shows the track:
 
-## Что умеет
+![Now playing card](docs/card.png)
 
-**Музыка.** Название, исполнитель, обложка, прогресс и управление. Эквалайзер
-двигается от настоящего звука и окрашивается в цвет обложки. Клик по обложке
-переводит в приложение, откуда идёт музыка.
+Hovering grows it and reveals the artist:
 
-**Плашки системных событий.** Громкость, яркость, подключение зарядки —
-появляются в острове и уходят сами.
+![Hover](docs/hovered.png)
 
-**Жидкое стекло.** Нижняя часть раскрытого острова — нативное Liquid Glass
-macOS 26, живущее по системным правилам прозрачности и контраста.
+A click expands it into the player, with liquid glass along the bottom:
 
-**Жесты.** Наведение показывает трек, клик раскрывает плеер, свайп по тачпаду
-вправо убирает карточку, влево возвращает.
+![Expanded player](docs/expanded.png)
 
-![Карточка трека](docs/card.png)
+## Features
 
-Под курсором подрастает и показывает исполнителя:
+**Music.** Title, artist, artwork, progress and transport controls. The
+equalizer is driven by real audio and takes its colour from the artwork.
+Clicking the artwork switches to the app the music is coming from.
 
-![Наведение](docs/hovered.png)
+**System HUDs.** Volume, brightness and power connection appear in the island
+and dismiss themselves.
 
-По клику раскрывается в плеер — с жидким стеклом внизу:
+**Liquid Glass.** The lower part of the expanded island is native macOS 26
+Liquid Glass, living by the system's own transparency and contrast settings.
 
-![Раскрытый плеер](docs/expanded.png)
+**Gestures.** Hover shows the track, a click expands the player, a trackpad
+swipe right dismisses the card and a swipe back restores it.
 
-## Требования
+## Requirements
 
-- macOS 15 и новее
-- Для жидкого стекла — macOS 26 и новее
-- Xcode 26 и новее для сборки
+- macOS 15 or later
+- macOS 26 or later for liquid glass
+- Xcode 26 or later to build
 
-## Установка
+## Installation
 
-Скачайте `.dmg` из [релизов](https://github.com/MakrSas/liquid-island/releases)
-и перетащите приложение в «Программы».
+Download the `.dmg` from [releases](https://github.com/MakrSas/liquid-island/releases)
+and drag the app into Applications.
 
-**При первом запуске macOS скажет, что приложение повреждено или не проверено.**
-Это не поломка: у проекта нет платного сертификата разработчика, поэтому
-сборка не подписана и не заверена у Apple. Снимите карантин одной командой:
+**On first launch macOS will say the app is damaged or unverified.** Nothing is
+broken: the project has no paid developer certificate, so the build is neither
+signed nor notarised. Clear the quarantine flag:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/LiquidIsland.app
 ```
 
-После этого приложение запускается обычным двойным щелчком. Если команду
-выполнять не хочется — соберите из исходников, у собранного локально
-приложения карантина нет.
+After that it opens with a normal double click. If you'd rather not run
+commands, build from source — a locally built app carries no quarantine flag.
 
-## Сборка из исходников
+## Building from source
 
 ```bash
 ./Scripts/bundle.sh release
 open build/LiquidIsland.app
 ```
 
-Готовый образ для раздачи собирается так:
+The distributable image is built with:
 
 ```bash
 ./Scripts/dmg.sh
 ```
 
-### Фон установщика
+The app lives in the menu bar under a capsule icon. Settings are there too.
 
-Окно образа — 660 × 420 точек, значки по 128 точек. Фон необязателен: без
-него раскладка сохранится, окно будет просто пустым.
+## Settings
 
-Чтобы добавить фон, положите картинку в `Resources/dmg-background.png`
-размером **1320 × 840 пикселей** — это двойное разрешение, скрипт сам сделает
-из неё TIFF с двумя представлениями, чтобы фон был чётким и на обычном
-экране, и на Retina.
+The settings window opens from the menu bar or by right-clicking the island.
+Everything applies live: sizes, corner radii, colours, animation springs with
+curves, behaviour and HUDs.
 
-Центры значков в пикселях этой картинки:
+Underneath it is plain JSON —
+`~/Library/Application Support/LiquidIsland/theme.json`. It is re-read on the
+fly, so you can edit it by hand. Every key is described in
+[SETTINGS.md](SETTINGS.md) (in Russian).
 
-| Что | Центр | Размер значка |
-|---|---|---|
-| Приложение | 360 × 420 | 256 × 256 px |
-| Ярлык «Программы» | 960 × 420 | 256 × 256 px |
+## Permissions
 
-То есть стрелку между ними рисуйте примерно на высоте 420 px, между 490 и 830
-по горизонтали. Подписи под значками Finder рисует сам, место под ними лучше
-оставить пустым.
+**Automation** — to read the track title from Spotify and Music.
+**Audio recording** — so the equalizer follows real sound. Without it the
+island draws a steady wave.
 
-Готовый шаблон с направляющими: [docs/dmg-template.svg](docs/dmg-template.svg) —
-откройте в редакторе, рисуйте поверх, направляющие удалите.
+Both are requested on first use and both are optional.
 
-Раскладка задаётся в начале `Scripts/dmg.sh` — если поменяете там координаты,
-пересчитайте и картинку.
+## What didn't work out, and why
 
-Приложение живёт в меню-баре под значком капсулы. Там же — настройки.
+**Metadata from arbitrary apps.** The system's Now Playing lives in the private
+MediaRemote framework, and since macOS 15.4 Apple has closed it to apps without
+a special entitlement: the daemon replies with an empty dictionary. Verified
+both by calling it directly and by loading the framework inside an
+Apple-signed process. So track titles are only available from apps with
+scripting support — Spotify and Music. Other sources, Telegram included, are
+detected by sound through CoreAudio: the island shows which app is playing, but
+not what.
 
-## Настройки
+**Glass needs a key window.** `NSGlassEffectView` only renders real liquid
+glass in a key window, otherwise it degrades to a flat blur. The island takes
+key focus for the moment of drawing and gives it straight back, so focus is
+lost only for an instant. This can be turned off in settings, along with the
+glass.
 
-Окно настроек открывается из меню-бара или правым кликом по острову. Всё
-меняется на лету: размеры, скругления, цвета, пружины анимаций с графиками,
-поведение, плашки.
-
-Под настройками лежит обычный JSON —
-`~/Library/Application Support/LiquidIsland/theme.json`. Он читается на лету,
-так что править можно и руками. Полное описание ключей: [SETTINGS.md](SETTINGS.md).
-
-## Разрешения
-
-**Автоматизация** — чтобы читать название трека из Spotify и Музыки.
-**Запись звука** — чтобы эквалайзер двигался от настоящего звука. Без неё
-остров рисует ровную волну.
-
-Оба разрешения запрашиваются при первом обращении, и оба необязательны.
-
-## Что не получилось и почему
-
-**Метаданные из произвольных приложений.** Системный Now Playing живёт в
-приватном MediaRemote, и с macOS 15.4 Apple закрыла его для приложений без
-специального энтайтлмента: демон отвечает пустым словарём. Проверено и через
-прямой вызов, и через загрузку фреймворка в Apple-подписанный процесс.
-Поэтому названия треков доступны только у приложений со скриптовой
-поддержкой — Spotify и Музыка. Остальные источники, включая Telegram,
-определяются по звуку через CoreAudio: остров покажет, какое приложение
-играет, но не что именно.
-
-**Стекло требует ключевого окна.** `NSGlassEffectView` рисует настоящее
-жидкое стекло только в ключевом окне, иначе выдаёт плоское размытие.
-Остров забирает ключ на момент отрисовки и сразу отдаёт обратно — фокус
-теряется на мгновение. Выключается в настройках вместе со стеклом.
-
-## Лицензия
+## License
 
 MIT.
