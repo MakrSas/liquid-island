@@ -85,7 +85,7 @@ curves, behaviour and HUDs.
 Underneath it is plain JSON —
 `~/Library/Application Support/LiquidIsland/theme.json`. It is re-read on the
 fly, so you can edit it by hand. Every key is described in
-[SETTINGS.md](SETTINGS.md) (in Russian).
+[SETTINGS.md](SETTINGS.md).
 
 ## Permissions
 

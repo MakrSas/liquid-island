@@ -1,95 +1,97 @@
-# Настройки LiquidIsland
+# Liquid Island settings
 
-Всё оформление и поведение живёт в
+*[Русская версия](SETTINGS.ru.md)*
+
+Everything about the look and behaviour lives in
 `~/Library/Application Support/LiquidIsland/theme.json`.
-Файл перечитывается на лету — правки видны без перезапуска.
+The file is re-read on the fly — edits show up without a restart.
 
-Этот список — заготовка под будущее приложение настроек: каждая строка
-соответствует одному элементу управления. Тип подсказывает, каким он должен
-быть: ползунком, переключателем или выбором из списка.
+The settings window covers all of this, but the same keys can be edited by
+hand. The type column says what kind of control each one is: a slider, a
+switch or a choice.
 
-## Геометрия — `geometry`
+## Geometry — `geometry`
 
-| Ключ | Тип | Сейчас | Что делает |
+| Key | Type | Default | What it does |
 |---|---|---|---|
-| `closedSize` | размер | 168 × 26 | Пилюля в покое, когда музыки нет |
-| `compactSize` | размер | 304 × 26 | Карточка трека в покое. Высота та же — остров растёт вбок |
-| `hudSize` | размер | 268 × 30 | Плашка системного события: громкость, яркость, зарядка |
-| `hoverPadding` | размер | 14 × 24 | Насколько подрастает под курсором. Вниз — только здесь |
-| `expandedSize` | размер | 420 × 168 | Раскрытый плеер |
-| `topRadius` | 0…20 | 9 | Верхние углы, вывернутые в кромку экрана |
-| `bottomRadiusClosed` | 0…20 | 8 | Нижние углы в покое |
-| `bottomRadiusOpen` | 0…40 | 11 | Нижние углы раскрытого |
-| `artworkRadius` | 0…16 | 5 | Скругление обложки в покое |
-| `artworkRadiusHovered` | 0…16 | 8 | То же под курсором |
-| `floatingTopInset` | 0…20 | 0 | Отступ от кромки экрана. Ноль — остров врастает в неё |
-| `contentPadding` | отступы | 12/16/14/16 | Поля раскрытого |
-| `compactPadding` | отступы | 4/7/4/12 | Поля карточки |
-| `glassFadeStart` | 0…1 | 0.44 | Где чёрный начинает уходить в стекло, доля высоты |
-| `glassFadeEnd` | 0…1 | 0.72 | Где чёрный кончается совсем |
+| `closedSize` | size | 168 × 26 | The pill at rest, when nothing is playing |
+| `compactSize` | size | 304 × 26 | The now playing card at rest. Same height — the island grows sideways, not down |
+| `hudSize` | size | 268 × 30 | The system HUD: volume, brightness, power |
+| `hoverPadding` | size | 14 × 24 | How much it grows under the cursor. Downward growth happens only here |
+| `expandedSize` | size | 420 × 168 | The expanded player |
+| `topRadius` | 0…20 | 9 | Top corners, curving outward into the screen edge |
+| `bottomRadiusClosed` | 0…20 | 8 | Bottom corners at rest |
+| `bottomRadiusOpen` | 0…40 | 11 | Bottom corners when expanded |
+| `artworkRadius` | 0…16 | 5 | Artwork corner radius at rest |
+| `artworkRadiusHovered` | 0…16 | 8 | The same under the cursor |
+| `floatingTopInset` | 0…20 | 0 | Gap from the screen edge. Zero means the island grows out of it |
+| `contentPadding` | insets | 12/16/14/16 | Padding of the expanded island |
+| `compactPadding` | insets | 4/7/4/12 | Padding of the card |
+| `glassFadeStart` | 0…1 | 0.44 | Where black starts giving way to glass, as a fraction of height |
+| `glassFadeEnd` | 0…1 | 0.72 | Where black is gone entirely |
 
-## Цвета и стекло — `palette`
+## Colours and glass — `palette`
 
-| Ключ | Тип | Сейчас | Что делает |
+| Key | Type | Default | What it does |
 |---|---|---|---|
-| `background` | цвет | чёрный | Тело острова. Alpha меньше единицы делает его полупрозрачным во всех состояниях, не только в раскрытом |
-| `primaryText` | цвет | белый | Название трека |
-| `secondaryText` | цвет | белый 60% | Исполнитель, время |
-| `accent` | цвет | оранжевый | Запасной акцент, если цвет из обложки не вытянулся |
-| `progressTrack` / `progressFill` | цвет | — | Полоса прогресса |
-| `rimLight` / `rimWidth` | цвет, 0…2 | белый 16%, 0.6 | Свечение по кромке |
-| `useLiquidGlass` | да/нет | да | Стекло в нижней части раскрытого острова |
-| `glassStyle` | `clear` / `regular` | `clear` | `regular` — матовое. Систему это тоже настраивает, ползунком Liquid Glass |
-| `glassTint` | цвет или пусто | чёрный 34% | Подкраска стекла. Без неё остров выцветает на светлом фоне: стекло становится почти белым, и белые кнопки на нём пропадают |
-| `glassInteractive` | да/нет | да | Отклик стекла на курсор |
-| `activateForGlass` | да/нет | да | Система рисует жидкое стекло только в ключевом окне, поэтому остров забирает ключ при раскрытии. С выключенным флагом стекло станет плоским размытием |
-| `releaseKeyAfterGlass` | да/нет | да | Отдавать ключ обратно сразу после отрисовки. Проверено: стекло переживает потерю ключа и остаётся живым, поэтому окно под островом теряет фокус лишь на мгновение |
-| `releaseKeyDelay` | 0.1…1 с | 0.45 | Через сколько отдавать ключ |
+| `background` | colour | black | The body of the island. An alpha below one makes it translucent in every state, not just when expanded |
+| `primaryText` | colour | white | Track title |
+| `secondaryText` | colour | white 60% | Artist and times |
+| `accent` | colour | orange | Fallback accent when no colour could be pulled from the artwork |
+| `progressTrack` / `progressFill` | colour | — | The progress bar |
+| `rimLight` / `rimWidth` | colour, 0…2 | white 16%, 0.6 | Glow along the edge |
+| `useLiquidGlass` | yes/no | yes | Glass in the lower part of the expanded island |
+| `glassStyle` | `clear` / `regular` | `clear` | `regular` is frosted. The system has a say too, through the Liquid Glass slider in Appearance |
+| `glassTint` | colour or empty | black 34% | Glass tint. Without it the island washes out on a light background: the glass goes almost white and the white buttons disappear |
+| `glassInteractive` | yes/no | yes | Glass responds to the cursor |
+| `activateForGlass` | yes/no | yes | The system only renders liquid glass in a key window, so the island takes key focus when it expands. With this off the glass degrades to a flat blur |
+| `releaseKeyAfterGlass` | yes/no | yes | Give the key focus straight back after drawing. Verified: the glass survives losing key and stays alive, so the window underneath loses focus only for an instant |
+| `releaseKeyDelay` | 0.1…1 s | 0.45 | How soon to give the focus back |
 
-## Анимация — `motion`
+## Animation — `motion`
 
-| Ключ | Тип | Сейчас | Что делает |
+| Key | Type | Default | What it does |
 |---|---|---|---|
-| `openResponse` / `openDamping` | 0.1…1 | 0.34 / 0.95 | Пружина раскрытия. Демпфирование ниже 0.8 даёт заметную раскачку |
-| `closeResponse` / `closeDamping` | 0.1…1 | 0.28 / 1.0 | Пружина сворачивания |
-| `contentResponse` / `contentDamping` | 0.1…1 | 0.24 / 1.0 | Смена содержимого: трек, обложка |
+| `openResponse` / `openDamping` | 0.1…1 | 0.34 / 0.95 | The expansion spring. Damping below 0.8 gives a visible wobble |
+| `closeResponse` / `closeDamping` | 0.1…1 | 0.28 / 1.0 | The collapse spring |
+| `contentResponse` / `contentDamping` | 0.1…1 | 0.24 / 1.0 | Content changes: track, artwork |
 
-## Поведение — `behavior`
+## Behaviour — `behavior`
 
-| Ключ | Тип | Сейчас | Что делает |
+| Key | Type | Default | What it does |
 |---|---|---|---|
-| `expandOnHover` | да/нет | нет | Раскрывать полностью по наведению, а не по клику |
-| `hoverShowsMedia` | да/нет | да | Показывать трек при наведении |
-| `hoverOpenDelay` | 0…2 с | 0.45 | Задержка раскрытия, если включено по наведению |
-| `hoverCloseDelay` | 0…2 с | 0.35 | Задержка сворачивания после ухода курсора |
-| `dismissOnOutsideClick` | да/нет | да | Сворачивать раскрытый остров кликом мимо и при переходе в другое приложение |
-| `displayMode` | список | `notchedOrMain` | Где показывать: экран с чёлкой или основной, только основной, за курсором, на всех |
-| `alwaysUseNotchShape` | да/нет | да | Форма выреза и на экранах без чёлки |
-| `showVolumeHUD` | да/нет | да | Плашка при смене громкости |
-| `showBrightnessHUD` | да/нет | да | Плашка при смене яркости |
-| `showPowerHUD` | да/нет | да | Плашка при подключении и отключении зарядки |
-| `hudDuration` | 0.5…5 с | 1.6 | Сколько висит плашка |
-| `showLiveActivities` | да/нет | да | Задел под всплывающие события |
-| `liveActivityDuration` | 1…10 с | 3 | Сколько они висят |
+| `expandOnHover` | yes/no | no | Expand fully on hover rather than on a click |
+| `hoverShowsMedia` | yes/no | yes | Show the track on hover |
+| `hoverOpenDelay` | 0…2 s | 0.45 | Delay before expanding, if hover expansion is on |
+| `hoverCloseDelay` | 0…2 s | 0.35 | Delay before collapsing after the cursor leaves |
+| `dismissOnOutsideClick` | yes/no | yes | Collapse the expanded island on a click outside it, and when switching to another app |
+| `displayMode` | choice | `notchedOrMain` | Where to show it: the notched screen or the main one, main only, follow the mouse, or all screens |
+| `alwaysUseNotchShape` | yes/no | yes | Use the notch shape on screens without a notch too |
+| `showVolumeHUD` | yes/no | yes | HUD when the volume changes |
+| `showBrightnessHUD` | yes/no | yes | HUD when the brightness changes |
+| `showPowerHUD` | yes/no | yes | HUD when power is connected or disconnected |
+| `hudDuration` | 0.5…5 s | 1.6 | How long a HUD stays |
+| `showLiveActivities` | yes/no | yes | Groundwork for pop-up activities |
+| `liveActivityDuration` | 1…10 s | 3 | How long those stay |
 
-## Запланировано
+## Planned
 
-| Настройка | Состояние | Что известно |
+| Setting | Status | What's known |
 |---|---|---|
-| Отключение повышения насыщенности стекла | не сделано | Liquid Glass подкрашивает и усиливает цвета того, что под ним. На тёмной обложке или пёстрых обоях это заметно и не всем нужно. Открытого API нет: у `NSGlassEffectView` в публичной части только `style`, `tintColor`, `cornerRadius` и `effectIsInteractive`. Среди приватных свойств на насыщенность похожи `_tintOpacityReduced`, `_vibrantBlendingStyleForSubtree`, `_variant` и `_subvariant` — надо перебрать их на стенде (`--glass-lab`) и посмотреть, какое гасит подкраску. Если ни одно не подойдёт, обходной путь — компенсирующий слой поверх стекла с обратной насыщенностью |
+| Turning off the glass saturation boost | not done | Liquid Glass tints and intensifies the colours behind it. Over dark artwork or a busy wallpaper this is noticeable, and not everyone wants it. There is no public API: `NSGlassEffectView` exposes only `style`, `tintColor`, `cornerRadius` and `effectIsInteractive`. Among the private properties, `_tintOpacityReduced`, `_vibrantBlendingStyleForSubtree`, `_variant` and `_subvariant` look related — they need to be tried one by one on the bench (`--glass-lab`) to see which one kills the tinting. If none of them fits, the fallback is a compensating layer above the glass with inverse saturation |
 
-## Что стоит помнить при работе над приложением настроек
+## Worth remembering
 
-- **Жидкое стекло требует ключевого окна в момент отрисовки.** `NSGlassEffectView`
-  в неключевом окне рисует плоское размытие. Но ключ нужен только на момент
-  композиции: дальше эффект живёт сам, и фокус можно вернуть — это проверено
-  и включено по умолчанию (`releaseKeyAfterGlass`). В интерфейсе настроек эту
-  связку надо объяснить, иначе выключивший `activateForGlass` решит, что
-  стекло сломалось.
-- **Размытие в анимациях недопустимо.** `blur` в SwiftUI создаёт растровый
-  слой, и в прозрачном окне его снимок остаётся висеть на экране после
-  сворачивания. Мягкость даётся масштабом и прозрачностью.
-- **Превью можно рисовать без запуска интерфейса:**
-  `swift run LiquidIsland --render-preview ./preview` рисует все фазы в PNG.
-- **Стенд стекла:** `--glass-lab` показывает варианты рядом. Пригодится, когда
-  снова понадобится отличить эффект от его подделки.
+- **Liquid glass needs a key window at the moment it is drawn.**
+  `NSGlassEffectView` in a non-key window renders a flat blur. But the key
+  status is only needed for the composition itself: after that the effect
+  lives on its own and the focus can be handed back — verified, and on by
+  default (`releaseKeyAfterGlass`). The settings UI has to explain this pair,
+  otherwise anyone who turns `activateForGlass` off will think the glass broke.
+- **Blur in animations is not an option.** `blur` in SwiftUI creates a
+  rasterised layer, and in a transparent window its snapshot stays on screen
+  after the island collapses. Softness comes from scale and opacity instead.
+- **Previews can be rendered without launching the UI:**
+  `swift run LiquidIsland --render-preview ./preview` draws every phase to PNG.
+- **The glass bench:** `--glass-lab` shows the variants side by side. Useful
+  whenever the effect has to be told apart from an imitation of it.
