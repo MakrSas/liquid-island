@@ -34,11 +34,10 @@ struct RevealSource: ViewModifier {
 
 struct IslandMediaView: View {
     @ObservedObject var media: MediaHub
+    let track: NowPlaying
     let theme: IslandTheme
     let phase: IslandPhase
     var levels: [Float] = []
-
-    private var track: NowPlaying { media.nowPlaying }
     private var isExpanded: Bool { phase == .expanded }
     private var isHovered: Bool { phase == .hovered }
 

@@ -11,7 +11,9 @@ enum IslandActivity: Equatable, Identifiable {
 
     var id: String {
         switch self {
-        case .media: return "media"
+        // Источников музыки может быть несколько сразу, поэтому в
+        // опознавателе — само приложение, а не просто «музыка».
+        case .media(let track): return "media.\(track.sourceBundleID ?? track.title)"
         case .system(let event): return "system.\(event.kind)"
         }
     }
@@ -55,7 +57,7 @@ final class ActivityCenter: ObservableObject {
     var activities: [IslandActivity] {
         var list: [IslandActivity] = []
         if let event = hud.event { list.append(.system(event)) }
-        if !media.nowPlaying.isEmpty { list.append(.media(media.nowPlaying)) }
+        list.append(contentsOf: media.sources.map { .media($0) })
 
         list.sort { left, right in
             // Закреплённая идёт первой, дальше по приоритету.
@@ -89,8 +91,12 @@ final class ActivityCenter: ObservableObject {
     private var naturalOrder: [IslandActivity] {
         var list: [IslandActivity] = []
         if let event = hud.event { list.append(.system(event)) }
-        if !media.nowPlaying.isEmpty { list.append(.media(media.nowPlaying)) }
-        return list.sorted { $0.priority > $1.priority }
+        list.append(contentsOf: media.sources.map { .media($0) })
+        // Сортировка устойчивая: источники сохраняют порядок между собой,
+        // иначе точки прыгали бы при каждом опросе.
+        return list.enumerated()
+            .sorted { ($0.element.priority, -$0.offset) > ($1.element.priority, -$1.offset) }
+            .map(\.element)
     }
 
     /// Сколько всего активностей и какая по счёту показана.

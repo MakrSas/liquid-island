@@ -29,6 +29,7 @@ struct SettingsPreview: View {
     private var island: IslandBody {
         IslandBody(
             media: media,
+            track: media.nowPlaying,
             theme: theme,
             phase: phase,
             size: size,

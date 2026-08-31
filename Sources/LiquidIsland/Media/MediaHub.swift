@@ -10,6 +10,10 @@ import CoreAudio
 @MainActor
 class MediaHub: ObservableObject {
     @Published private(set) var nowPlaying: NowPlaying = .empty
+    /// Все звучащие источники: первым тот, о котором мы знаем больше всего,
+    /// дальше приложения, найденные по звуку. Система показывает их списком в
+    /// пункте управления — остров должен уметь так же.
+    @Published private(set) var sources: [NowPlaying] = []
     @Published private(set) var activeProviderName: String = "—"
     /// Взводится при смене трека — по нему остров показывает всплывающую активность.
     let trackChanged = PassthroughSubject<NowPlaying, Never>()
@@ -95,6 +99,36 @@ class MediaHub: ObservableObject {
         if value != nowPlaying { nowPlaying = value }
 
         updateTap(for: value)
+        updateSources(primary: value)
+    }
+
+    /// Собирает список источников: подробный плюс найденные по звуку.
+    ///
+    /// Приложение, о котором мы и так знаем всё через скрипты, вторым разом
+    /// не добавляем — иначе Spotify появлялся бы дважды, карточкой и значком.
+    private func updateSources(primary: NowPlaying) {
+        var list: [NowPlaying] = []
+        if !primary.isEmpty { list.append(primary) }
+
+        for candidate in audioProvider.candidates() {
+            guard let bundle = candidate.app.bundleIdentifier else { continue }
+            guard bundle != primary.sourceBundleID else { continue }
+            list.append(
+                NowPlaying(
+                    title: candidate.app.localizedName ?? "Звук",
+                    artist: "",
+                    album: "",
+                    artwork: candidate.app.icon,
+                    duration: 0,
+                    elapsed: 0,
+                    isPlaying: true,
+                    sourceBundleID: bundle,
+                    supportsTransport: false
+                )
+            )
+        }
+
+        if list != sources { sources = list }
     }
 
     /// Решает, что слушать отводом.

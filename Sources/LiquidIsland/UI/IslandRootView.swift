@@ -25,6 +25,7 @@ struct IslandRootView: View {
     private var island: some View {
         IslandBody(
             media: media,
+            track: state.shownTrack,
             theme: theme,
             phase: state.phase,
             size: size,

@@ -203,7 +203,14 @@ final class IslandState: ObservableObject {
     }
 
     /// Есть ли что показывать в компактном виде.
-    var hasMedia: Bool { !media.nowPlaying.isEmpty }
+    var hasMedia: Bool { !media.sources.isEmpty }
+
+    /// Источник, который сейчас показан. Это может быть не тот, что играет
+    /// главным: пользователь мог пролистать к другому.
+    var shownTrack: NowPlaying {
+        if case .media(let track) = activities.primary { return track }
+        return media.nowPlaying
+    }
 
     var isOpen: Bool { phase == .expanded }
 

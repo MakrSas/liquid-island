@@ -7,6 +7,9 @@ import SwiftUI
 /// поменяется. Всё, что зависит от окна и мыши, живёт снаружи.
 struct IslandBody: View {
     @ObservedObject var media: MediaHub
+    /// Какой источник показываем. Их может быть несколько, и выбирает
+    /// пользователь листанием.
+    let track: NowPlaying
     let theme: IslandTheme
     let phase: IslandPhase
     let size: CGSize
@@ -102,9 +105,10 @@ struct IslandBody: View {
                     .padding(theme.geometry.compactPadding)
                     .transition(.softFade(scale: 0.9, offsetY: 0))
             }
-        } else if showsMedia || (phase == .expanded && !media.nowPlaying.isEmpty) {
+        } else if showsMedia || (phase == .expanded && !track.isEmpty) {
             IslandMediaView(
                 media: media,
+                track: track,
                 theme: theme,
                 phase: phase,
                 levels: levels

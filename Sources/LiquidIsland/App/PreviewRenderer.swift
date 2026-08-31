@@ -31,7 +31,7 @@ enum PreviewRenderer {
             )
             render(
                 view: shell(theme: theme, style: style, size: theme.geometry.compactSize) {
-                    IslandMediaView(media: StubHub(track: sample), theme: theme, phase: .closed, levels: [0.9, 0.5, 0.75, 0.35])
+                    IslandMediaView(media: StubHub(track: sample), track: sample, theme: theme, phase: .closed, levels: [0.9, 0.5, 0.75, 0.35])
                 },
                 size: sizeFor(theme.geometry.compactSize),
                 to: directory.appendingPathComponent("card-\(suffix).png")
@@ -42,14 +42,14 @@ enum PreviewRenderer {
             )
             render(
                 view: shell(theme: theme, style: style, size: hovered) {
-                    IslandMediaView(media: StubHub(track: sample), theme: theme, phase: .hovered, levels: [0.9, 0.5, 0.75, 0.35])
+                    IslandMediaView(media: StubHub(track: sample), track: sample, theme: theme, phase: .hovered, levels: [0.9, 0.5, 0.75, 0.35])
                 },
                 size: sizeFor(hovered),
                 to: directory.appendingPathComponent("hovered-\(suffix).png")
             )
             render(
                 view: shell(theme: theme, style: style, size: theme.geometry.expandedSize) {
-                    IslandMediaView(media: StubHub(track: sample), theme: theme, phase: .expanded, levels: [0.9, 0.5, 0.75, 0.35])
+                    IslandMediaView(media: StubHub(track: sample), track: sample, theme: theme, phase: .expanded, levels: [0.9, 0.5, 0.75, 0.35])
                 },
                 size: sizeFor(theme.geometry.expandedSize),
                 to: directory.appendingPathComponent("expanded-\(suffix).png")
