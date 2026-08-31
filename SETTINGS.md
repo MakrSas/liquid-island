@@ -16,7 +16,7 @@ switch or a choice.
 |---|---|---|---|
 | `closedSize` | size | 168 × 26 | The pill at rest, when nothing is playing |
 | `compactSize` | size | 304 × 26 | The now playing card at rest. Same height — the island grows sideways, not down |
-| `hudSize` | size | 268 × 30 | The system HUD: volume, brightness, power |
+| `hudSize` | size | 304 × 26 | The system HUD: volume, brightness, power. Matches the card on both sides, so the island doesn't jump in size when a HUD interrupts the music |
 | `warningSize` | size | 360 × 64 | The low battery warning: two lines and a button |
 | `hoverPadding` | size | 14 × 24 | How much it grows under the cursor. Downward growth happens only here |
 | `expandedSize` | size | 420 × 168 | The expanded player |

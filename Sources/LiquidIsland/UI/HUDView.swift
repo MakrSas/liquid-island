@@ -11,7 +11,7 @@ struct HUDView: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: event.icon)
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(theme.palette.primaryText.color)
                 .frame(width: 20)
                 .contentTransition(.symbolEffect(.replace))
@@ -20,7 +20,7 @@ struct HUDView: View {
                 progress: Double(event.level),
                 trackColor: theme.palette.progressTrack.color,
                 fillColor: theme.palette.progressFill.color,
-                thickness: 5
+                thickness: 4
             )
 
             Text(event.readout)
