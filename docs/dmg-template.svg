@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="840" viewBox="0 0 1320 840">
+  <!-- Шаблон фона установщика Liquid Island.
+       Холст 1320 × 840 px = окно 660 × 420 точек в двойном разрешении.
+       Все направляющие — вспомогательные, в готовом фоне их быть не должно. -->
+  <rect width="1320" height="840" fill="#f2f2f7"/>
+
+  <!-- Значок приложения: центр 360 × 420, сторона 256 -->
+  <rect x="232" y="292" width="256" height="256" fill="none"
+        stroke="#ff3b30" stroke-width="2" stroke-dasharray="8 6"/>
+  <text x="360" y="282" text-anchor="middle" font-family="-apple-system, Helvetica"
+        font-size="20" fill="#ff3b30">приложение · 360 × 420</text>
+
+  <!-- Подпись под значком рисует Finder -->
+  <rect x="200" y="548" width="320" height="72" fill="none"
+        stroke="#ff9500" stroke-width="2" stroke-dasharray="4 6"/>
+  <text x="360" y="640" text-anchor="middle" font-family="-apple-system, Helvetica"
+        font-size="18" fill="#ff9500">здесь Finder напишет имя — не занимать</text>
+
+  <!-- Ярлык «Программы»: центр 960 × 420 -->
+  <rect x="832" y="292" width="256" height="256" fill="none"
+        stroke="#ff3b30" stroke-width="2" stroke-dasharray="8 6"/>
+  <text x="960" y="282" text-anchor="middle" font-family="-apple-system, Helvetica"
+        font-size="20" fill="#ff3b30">Программы · 960 × 420</text>
+
+  <rect x="800" y="548" width="320" height="72" fill="none"
+        stroke="#ff9500" stroke-width="2" stroke-dasharray="4 6"/>
+
+  <!-- Место под стрелку между значками -->
+  <rect x="490" y="360" width="340" height="120" fill="none"
+        stroke="#34c759" stroke-width="2" stroke-dasharray="8 6"/>
+  <text x="660" y="350" text-anchor="middle" font-family="-apple-system, Helvetica"
+        font-size="20" fill="#34c759">стрелка</text>
+
+  <!-- Свободная область сверху: заголовок, логотип -->
+  <rect x="60" y="40" width="1200" height="200" fill="none"
+        stroke="#007aff" stroke-width="2" stroke-dasharray="8 6"/>
+  <text x="660" y="150" text-anchor="middle" font-family="-apple-system, Helvetica"
+        font-size="24" fill="#007aff">свободно: название, логотип</text>
+
+  <text x="660" y="800" text-anchor="middle" font-family="-apple-system, Helvetica"
+        font-size="18" fill="#8e8e93">холст 1320 × 840 px · экспорт в Resources/dmg-background.png</text>
+</svg>
