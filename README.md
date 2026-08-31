@@ -22,7 +22,7 @@ Hovering grows it and reveals the artist:
 
 A click expands it into the player, with liquid glass along the bottom:
 
-![Expanded player](docs/expanded.png)
+![Expanded player](docs/player.png)
 
 ## Features
 
