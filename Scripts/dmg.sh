@@ -38,9 +38,15 @@ HAS_BACKGROUND=false
 if [ -f "$BACKGROUND" ]; then
     # Картинка рисуется в двойном разрешении, а Finder ждёт точки. TIFF с
     # двумя представлениями решает это: на обычном экране берётся одно,
-    # на Retina — другое.
-    tiffutil -cathidpicheck "$BACKGROUND" -out "$STAGE/.background/background.tiff" >/dev/null 2>&1 \
+    # на Retina — другое. Для этого нужны обе версии, поэтому уменьшенную
+    # делаем сами.
+    ONE_X="$ROOT/build/background@1x.png"
+    cp "$BACKGROUND" "$ONE_X"
+    sips -z "$WINDOW_HEIGHT" "$WINDOW_WIDTH" "$ONE_X" >/dev/null
+    tiffutil -cathidpicheck "$ONE_X" "$BACKGROUND" \
+        -out "$STAGE/.background/background.tiff" >/dev/null 2>&1 \
         || cp "$BACKGROUND" "$STAGE/.background/background.tiff"
+    rm -f "$ONE_X"
     HAS_BACKGROUND=true
 fi
 
@@ -65,7 +71,8 @@ tell application "Finder"
         set arrangement of options to not arranged
         set icon size of options to $ICON_SIZE
         if $HAS_BACKGROUND then
-            set background picture of options to file ".background:background.tiff"
+            set background picture of options to ¬
+                (POSIX file "$MOUNT/.background/background.tiff" as alias)
         end if
         set position of item "$APP_NAME.app" of container window to {$APP_X, $APP_Y}
         set position of item "Applications" of container window to {$LINK_X, $LINK_Y}
