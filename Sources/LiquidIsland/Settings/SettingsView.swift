@@ -326,6 +326,17 @@ private struct BehaviorSection: View {
 
     var body: some View {
         Section {
+            Toggle("Сворачивать под системные события", isOn: store.binding(\.behavior.collapseForSystemEvents))
+            if store.theme.behavior.collapseForSystemEvents {
+                Toggle("Возвращать обратно", isOn: store.binding(\.behavior.restoreAfterSystemEvent))
+            }
+        } header: {
+            Text("Системные события")
+        } footer: {
+            Text("Громкость и яркость человек меняет прямо сейчас и ждёт увидеть именно их, а не плеер, открытый минуту назад. Если остров тронуть руками, пока висит плашка, обратно он не развернётся.")
+        }
+
+        Section {
             Toggle("Приглушать обложку на паузе", isOn: store.binding(\.behavior.dimArtworkWhenPaused))
             Toggle("Убирать карточку на паузе", isOn: store.binding(\.behavior.hideWhenPaused))
             if store.theme.behavior.hideWhenPaused {

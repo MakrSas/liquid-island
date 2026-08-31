@@ -66,6 +66,8 @@ switch or a choice.
 | `hoverShowsMedia` | yes/no | yes | Show the track on hover |
 | `hoverOpenDelay` | 0…2 s | 0.45 | Delay before expanding, if hover expansion is on |
 | `hoverCloseDelay` | 0…2 s | 0.35 | Delay before collapsing after the cursor leaves |
+| `collapseForSystemEvents` | yes/no | yes | Collapse the expanded island when a system event arrives |
+| `restoreAfterSystemEvent` | yes/no | yes | Expand it again once the HUD is done |
 | `dimArtworkWhenPaused` | yes/no | yes | Dim the artwork as soon as playback stops |
 | `hideWhenPaused` | yes/no | yes | Hide the card once the pause drags on |
 | `hideWhenPausedAfter` | 5…180 s | 30 | How long a pause has to last |

@@ -168,6 +168,13 @@ struct IslandTheme: Codable, Equatable {
         var showLiveActivities: Bool = true
         /// Сколько секунд висит всплывающая активность.
         var liveActivityDuration: Double = 3.0
+        /// Сворачивать раскрытый остров, когда приходит системное событие.
+        /// Громкость и яркость человек меняет прямо сейчас и ждёт увидеть
+        /// именно их, а не плеер, открытый минуту назад.
+        var collapseForSystemEvents: Bool = true
+        /// Возвращать остров обратно, когда плашка ушла.
+        var restoreAfterSystemEvent: Bool = true
+
         /// Убирать карточку, если воспроизведение стоит.
         var hideWhenPaused: Bool = true
         /// Через сколько секунд паузы убирать.

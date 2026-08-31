@@ -31,6 +31,8 @@ final class IslandState: ObservableObject {
     private var hoverCloseWork: DispatchWorkItem?
     private var pressWork: DispatchWorkItem?
     private var pauseWork: DispatchWorkItem?
+    /// Куда вернуть остров, когда системная плашка отработает.
+    private var phaseBeforeEvent: IslandPhase?
 
     var theme: IslandTheme { themeStore.theme }
 
@@ -80,9 +82,12 @@ final class IslandState: ObservableObject {
             .map { $0 != nil }
             .removeDuplicates()
             .dropFirst()
-            .sink { [weak self] _ in
+            .sink { [weak self] present in
                 guard let self else { return }
-                withAnimation(self.theme.motion.open) { self.objectWillChange.send() }
+                withAnimation(self.theme.motion.open) {
+                    self.handleSystemEvent(present: present)
+                    self.objectWillChange.send()
+                }
             }
             .store(in: &bag)
 
@@ -157,6 +162,26 @@ final class IslandState: ObservableObject {
             return metrics.hasHardwareNotch ? metrics.closedSize : theme.geometry.closedSize
         }
         return theme.geometry.compactSize
+    }
+
+    /// Системное событие сворачивает раскрытый остров и возвращает его,
+    /// когда плашка отработала.
+    private func handleSystemEvent(present: Bool) {
+        if present {
+            guard theme.behavior.collapseForSystemEvents, phase == .expanded else { return }
+            phaseBeforeEvent = phase
+            phase = .closed
+            return
+        }
+
+        guard theme.behavior.restoreAfterSystemEvent, let saved = phaseBeforeEvent else {
+            phaseBeforeEvent = nil
+            return
+        }
+        phaseBeforeEvent = nil
+        // Возвращаем только если за это время остров не тронули руками.
+        guard phase == .closed else { return }
+        phase = saved
     }
 
     /// Обложка гаснет сразу на паузе — до того, как карточка уйдёт совсем.
@@ -311,6 +336,7 @@ final class IslandState: ObservableObject {
     }
 
     func toggle() {
+        phaseBeforeEvent = nil
         cancelHoverWork()
         transition(to: phase == .expanded ? .hovered : .expanded)
     }
@@ -332,6 +358,7 @@ final class IslandState: ObservableObject {
 
     /// Клик мимо острова — единственный способ его свернуть.
     func dismiss() {
+        phaseBeforeEvent = nil
         cancelHoverWork()
         transition(to: .closed)
     }
