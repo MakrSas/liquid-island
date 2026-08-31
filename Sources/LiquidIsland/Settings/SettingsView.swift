@@ -326,6 +326,23 @@ private struct BehaviorSection: View {
 
     var body: some View {
         Section {
+            Toggle("Приглушать обложку на паузе", isOn: store.binding(\.behavior.dimArtworkWhenPaused))
+            Toggle("Убирать карточку на паузе", isOn: store.binding(\.behavior.hideWhenPaused))
+            if store.theme.behavior.hideWhenPaused {
+                LabeledContent {
+                    Slider(value: store.binding(\.behavior.hideWhenPausedAfter).double, in: 5...180)
+                } label: {
+                    Text("Через сколько убирать")
+                    Text(String(format: "%.0f с", store.theme.behavior.hideWhenPausedAfter))
+                }
+            }
+        } header: {
+            Text("Пауза")
+        } footer: {
+            Text("Обложка гаснет сразу, а карточка уходит, если пауза затянулась. При первом же звуке всё возвращается.")
+        }
+
+        Section {
             Picker("Точки активностей", selection: store.binding(\.behavior.dotsPlacement)) {
                 Text("Внутри карточки").tag(IslandTheme.DotsPlacement.inside)
                 Text("Капсулой снизу").tag(IslandTheme.DotsPlacement.below)

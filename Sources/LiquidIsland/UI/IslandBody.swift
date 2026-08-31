@@ -22,6 +22,8 @@ struct IslandBody: View {
     /// Сколько всего активностей и какая показана — под них рисуются точки.
     var pageCount: Int = 0
     var pageIndex: Int = 0
+    /// Воспроизведение стоит — обложку приглушаем.
+    var isDimmed: Bool = false
     /// Сдвиг и прозрачность на свайпе.
     var swipeOffset: CGFloat = 0
     var swipeFade: Double = 1
@@ -101,6 +103,14 @@ struct IslandBody: View {
                     }
                 }
                 .padding(.top, theme.geometry.dotsCapsuleGap)
+                // Уходит вверх, под остров, а не вбок: по умолчанию SwiftUI
+                // уводит вьюху туда, куда сожмётся разметка, и капсула
+                // уезжала вправо.
+                .transition(
+                    .move(edge: .top)
+                        .combined(with: .opacity)
+                        .combined(with: .scale(scale: 0.8, anchor: .top))
+                )
         }
     }
 
@@ -155,7 +165,8 @@ struct IslandBody: View {
                 track: track,
                 theme: theme,
                 phase: phase,
-                levels: levels
+                levels: levels,
+                isDimmed: isDimmed
             )
             .offset(x: swipeOffset)
             .opacity(swipeFade)

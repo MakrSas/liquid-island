@@ -35,6 +35,7 @@ struct IslandRootView: View {
             hudEvent: state.hudEvent,
             pageCount: state.activities.pageCount,
             pageIndex: state.activities.pageIndex,
+            isDimmed: state.isDimmed,
             swipeOffset: state.swipeOffset,
             swipeFade: state.swipeFade
         )
@@ -42,6 +43,9 @@ struct IslandRootView: View {
             body
             body.dotsCapsule
         }
+        // Капсула появляется и уходит той же пружиной, что и остров.
+        .animation(theme.motion.open, value: state.activities.pageCount)
+        .animation(theme.motion.close, value: state.phase)
         // Слой стекла живёт в AppKit и берёт размер отсюда: Shape сообщает
         // его на каждом кадре пружины, поэтому стекло идёт с островом в ногу.
         .reportingAnimatedSize(size, to: onSizeChange)

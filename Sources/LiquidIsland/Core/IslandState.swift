@@ -19,6 +19,8 @@ final class IslandState: ObservableObject {
     @Published private(set) var swipeOffset: CGFloat = 0
     /// Отклик на нажатие: остров чуть подрастает и возвращается.
     @Published private(set) var pressScale: CGFloat = 1
+    /// Карточка убрана, потому что воспроизведение давно стоит.
+    @Published private(set) var hiddenByPause = false
 
     let media: MediaHub
     let hud: SystemHUD
@@ -28,6 +30,7 @@ final class IslandState: ObservableObject {
     private var hoverOpenWork: DispatchWorkItem?
     private var hoverCloseWork: DispatchWorkItem?
     private var pressWork: DispatchWorkItem?
+    private var pauseWork: DispatchWorkItem?
 
     var theme: IslandTheme { themeStore.theme }
 
@@ -53,6 +56,13 @@ final class IslandState: ObservableObject {
                 self.media.focus(on: self.shownTrack.sourceBundleID)
                 withAnimation(self.theme.motion.open) { self.objectWillChange.send() }
             }
+            .store(in: &bag)
+
+        // Пауза: сначала обложка гаснет, а если так и стоит — карточка уходит.
+        media.$nowPlaying
+            .map(\.isPlaying)
+            .removeDuplicates()
+            .sink { [weak self] playing in self?.handlePlayback(playing) }
             .store(in: &bag)
 
         // И при обычной смене источников тоже: показанный мог смениться сам.
@@ -149,9 +159,40 @@ final class IslandState: ObservableObject {
         return theme.geometry.compactSize
     }
 
+    /// Обложка гаснет сразу на паузе — до того, как карточка уйдёт совсем.
+    var isDimmed: Bool {
+        theme.behavior.dimArtworkWhenPaused && !shownTrack.isPlaying
+    }
+
+    /// Пауза затянулась — убираем карточку и возвращаем при первом же звуке.
+    private func handlePlayback(_ playing: Bool) {
+        pauseWork?.cancel()
+        pauseWork = nil
+
+        guard !playing else {
+            guard hiddenByPause else { return }
+            withAnimation(theme.motion.open) { hiddenByPause = false }
+            return
+        }
+
+        guard theme.behavior.hideWhenPaused else { return }
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            withAnimation(self.theme.motion.close) { self.hiddenByPause = true }
+        }
+        pauseWork = work
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + theme.behavior.hideWhenPausedAfter,
+            execute: work
+        )
+    }
+
     /// Показываем ли карточку трека вместо пустой пилюли.
     var showsMediaCard: Bool {
-        theme.behavior.hoverShowsMedia && hasMedia && !isDismissed
+        guard !hiddenByPause else { return false }
+        guard theme.behavior.hoverShowsMedia, hasMedia, !isDismissed else { return false }
+        if case .system = activities.primary { return false }
+        return true
     }
 
     /// Прозрачность карточки во время свайпа: чем дальше увели, тем бледнее.

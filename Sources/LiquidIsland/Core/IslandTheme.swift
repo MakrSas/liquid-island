@@ -165,6 +165,13 @@ struct IslandTheme: Codable, Equatable {
         var showLiveActivities: Bool = true
         /// Сколько секунд висит всплывающая активность.
         var liveActivityDuration: Double = 3.0
+        /// Убирать карточку, если воспроизведение стоит.
+        var hideWhenPaused: Bool = true
+        /// Через сколько секунд паузы убирать.
+        var hideWhenPausedAfter: Double = 30
+        /// Приглушать обложку сразу на паузе — до того, как карточка уйдёт.
+        var dimArtworkWhenPaused: Bool = true
+
         /// Где показывать точки активностей.
         var dotsPlacement: DotsPlacement = .inside
 

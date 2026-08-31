@@ -38,6 +38,8 @@ struct IslandMediaView: View {
     let theme: IslandTheme
     let phase: IslandPhase
     var levels: [Float] = []
+    /// Воспроизведение стоит — обложку приглушаем.
+    var isDimmed: Bool = false
     private var isExpanded: Bool { phase == .expanded }
     private var isHovered: Bool { phase == .hovered }
 
@@ -87,6 +89,11 @@ struct IslandMediaView: View {
     private var header: some View {
         HStack(spacing: isExpanded ? 12 : 8) {
             ArtworkView(image: track.artwork, size: artworkSize, cornerRadius: artworkRadius)
+                // На паузе обложка гаснет: остров подсказывает, что звука нет,
+                // ещё до того, как карточка уйдёт совсем.
+                .saturation(isDimmed ? 0.25 : 1)
+                .opacity(isDimmed ? 0.55 : 1)
+                .animation(theme.motion.content, value: isDimmed)
                 .modifier(RevealSource(isEnabled: canRevealSource, action: media.revealSource))
 
             VStack(alignment: .leading, spacing: showsArtist ? 2 : 0) {
