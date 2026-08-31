@@ -30,9 +30,14 @@ struct IslandTheme: Codable, Equatable {
         /// Развёрнутая панель — только чёрная часть, без стеклянного подноса.
         var expandedSize: CGSize = CGSize(width: 420, height: 168)
 
-        /// Капсула с точками под островом, когда они вынесены наружу.
-        var dotsCapsuleSize: CGSize = CGSize(width: 54, height: 16)
-        var dotsCapsuleGap: CGFloat = 6
+        /// Капсула с точками под островом. Ширина считается по числу точек,
+        /// здесь только высота и поля по краям.
+        var dotsCapsuleHeight: CGFloat = 20
+        var dotsCapsulePadding: CGFloat = 12
+        var dotsCapsuleGap: CGFloat = 7
+        /// Размер самой точки и просвет между ними.
+        var dotSize: CGFloat = 5
+        var dotSpacing: CGFloat = 6
         /// Насколько точки подняты над нижней кромкой, когда они внутри.
         var dotsInset: CGFloat = 9
 

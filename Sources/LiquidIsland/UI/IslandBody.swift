@@ -87,12 +87,14 @@ struct IslandBody: View {
     var dotsCapsule: some View {
         if showsDots, theme.behavior.dotsPlacement == .below {
             pageDots
-                .frame(
-                    width: theme.geometry.dotsCapsuleSize.width,
-                    height: theme.geometry.dotsCapsuleSize.height
-                )
+                .frame(width: dotsCapsuleWidth, height: theme.geometry.dotsCapsuleHeight)
                 .background {
-                    if #available(macOS 26.0, *), theme.palette.useLiquidGlass {
+                    // Стекло система рисует полноценным только в ключевом
+                    // окне, то есть когда остров раскрыт. В остальное время
+                    // капсула чёрная: полустеклянная выглядела бы поломкой.
+                    if #available(macOS 26.0, *),
+                       theme.palette.useLiquidGlass,
+                       phase == .expanded {
                         Capsule().fill(.clear).glassEffect(glass, in: Capsule())
                     } else {
                         Capsule().fill(theme.palette.background.color)
@@ -116,15 +118,23 @@ struct IslandBody: View {
     }
 
     private var pageDots: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: theme.geometry.dotSpacing) {
             ForEach(0..<pageCount, id: \.self) { index in
                 Circle()
                     .fill(theme.palette.primaryText.color)
                     .opacity(index == pageIndex ? 0.9 : 0.3)
-                    .frame(width: 4, height: 4)
+                    .frame(width: theme.geometry.dotSize, height: theme.geometry.dotSize)
             }
         }
         .animation(theme.motion.content, value: pageIndex)
+    }
+
+    /// Ширина капсулы считается по числу точек: она должна расти вместе с
+    /// количеством источников, а не быть подобранной под какое-то одно.
+    private var dotsCapsuleWidth: CGFloat {
+        let dots = CGFloat(pageCount) * theme.geometry.dotSize
+        let gaps = CGFloat(max(pageCount - 1, 0)) * theme.geometry.dotSpacing
+        return dots + gaps + theme.geometry.dotsCapsulePadding * 2
     }
 
     @ViewBuilder

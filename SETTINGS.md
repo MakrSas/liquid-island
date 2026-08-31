@@ -65,7 +65,9 @@ switch or a choice.
 | `hoverShowsMedia` | yes/no | yes | Show the track on hover |
 | `hoverOpenDelay` | 0…2 s | 0.45 | Delay before expanding, if hover expansion is on |
 | `hoverCloseDelay` | 0…2 s | 0.35 | Delay before collapsing after the cursor leaves |
-| `dotsPlacement` | `inside` / `below` | `inside` | Where the activity dots go: inside the card near its bottom edge, or in a separate glass capsule under the island |
+| `dotsPlacement` | `inside` / `below` | `inside` | Where the activity dots go: inside the card near its bottom edge, or in a separate capsule under the island |
+| `dotSize` / `dotSpacing` | 3…10 | 5 / 6 | The dots themselves. The capsule width follows from them |
+| `dotsCapsuleHeight` / `dotsCapsulePadding` / `dotsCapsuleGap` | pt | 20 / 12 / 7 | The capsule under the island |
 | `dismissOnOutsideClick` | yes/no | yes | Collapse the expanded island on a click outside it, and when switching to another app |
 | `displayMode` | choice | `notchedOrMain` | Where to show it: the notched screen or the main one, main only, follow the mouse, or all screens |
 | `alwaysUseNotchShape` | yes/no | yes | Use the notch shape on screens without a notch too |
