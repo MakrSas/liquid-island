@@ -43,13 +43,25 @@ final class IslandState: ObservableObject {
         self.activities = ActivityCenter(media: media, hud: hud)
         self.themeStore = themeStore
 
-        // Закрепление активности меняет и содержимое, и ширину.
+        // Закрепление активности меняет и содержимое, и то, какой источник
+        // мы слушаем отводом.
         activities.$pinned
             .removeDuplicates()
             .dropFirst()
             .sink { [weak self] _ in
                 guard let self else { return }
+                self.media.focus(on: self.shownTrack.sourceBundleID)
                 withAnimation(self.theme.motion.open) { self.objectWillChange.send() }
+            }
+            .store(in: &bag)
+
+        // И при обычной смене источников тоже: показанный мог смениться сам.
+        media.$sources
+            .map { $0.first?.sourceBundleID }
+            .removeDuplicates()
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.media.focus(on: self.shownTrack.sourceBundleID)
             }
             .store(in: &bag)
 

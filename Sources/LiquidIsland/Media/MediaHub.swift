@@ -30,6 +30,8 @@ class MediaHub: ObservableObject {
     private nonisolated let accentCache = Guarded<(key: String, color: NSColor?)?>(nil)
 
     private let audioProvider = SystemAudioProvider()
+    /// Источник, который сейчас показан в острове: отвод наводится на него.
+    private var focusedBundleID: String?
 
     init() {
         providers = [MediaRemoteProvider(), ScriptingProvider(), audioProvider]
@@ -102,6 +104,13 @@ class MediaHub: ObservableObject {
         updateSources(primary: value)
     }
 
+    /// Показан другой источник — переводим на него отвод.
+    func focus(on bundleID: String?) {
+        guard focusedBundleID != bundleID else { return }
+        focusedBundleID = bundleID
+        updateTap(for: nowPlaying)
+    }
+
     /// Собирает список источников: подробный плюс найденные по звуку.
     ///
     /// Приложение, о котором мы и так знаем всё через скрипты, вторым разом
@@ -121,7 +130,10 @@ class MediaHub: ObservableObject {
                     artwork: candidate.app.icon,
                     duration: 0,
                     elapsed: 0,
-                    isPlaying: true,
+                    // Играющим считаем только тот источник, который сейчас
+                    // слушаем отводом и в котором есть сигнал. Открытый
+                    // выход о воспроизведении не говорит ничего.
+                    isPlaying: bundle == focusedBundleID && levels.hasSignal,
                     sourceBundleID: bundle,
                     supportsTransport: false
                 )
@@ -149,9 +161,11 @@ class MediaHub: ObservableObject {
 
         // Скриптуемые плееры сами говорят, что играют, — там отвод нужен
         // только для эквалайзера, и слушать можно весь выход.
+        // Слушаем тот источник, который показан: у остальных состояние
+        // определить нечем, и играющими они не считаются.
         var target: [AudioObjectID] = []
-        if !value.supportsTransport, let bundleID = value.sourceBundleID,
-           let process = audioProvider.process(for: bundleID) {
+        let bundleID = focusedBundleID ?? value.sourceBundleID
+        if let bundleID, let process = audioProvider.process(for: bundleID) {
             target = [process]
         }
 

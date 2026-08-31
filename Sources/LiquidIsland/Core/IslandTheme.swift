@@ -30,6 +30,12 @@ struct IslandTheme: Codable, Equatable {
         /// Развёрнутая панель — только чёрная часть, без стеклянного подноса.
         var expandedSize: CGSize = CGSize(width: 420, height: 168)
 
+        /// Капсула с точками под островом, когда они вынесены наружу.
+        var dotsCapsuleSize: CGSize = CGSize(width: 54, height: 16)
+        var dotsCapsuleGap: CGFloat = 6
+        /// Насколько точки подняты над нижней кромкой, когда они внутри.
+        var dotsInset: CGFloat = 9
+
         /// Где по высоте раскрытого острова чёрный начинает уходить в стекло
         /// и где растворяется полностью. Доли высоты, сверху вниз.
         var glassFadeStart: Double = 0.46
@@ -154,6 +160,9 @@ struct IslandTheme: Codable, Equatable {
         var showLiveActivities: Bool = true
         /// Сколько секунд висит всплывающая активность.
         var liveActivityDuration: Double = 3.0
+        /// Где показывать точки активностей.
+        var dotsPlacement: DotsPlacement = .inside
+
         /// Сворачивать раскрытый остров кликом мимо него.
         var dismissOnOutsideClick: Bool = true
 
@@ -162,6 +171,13 @@ struct IslandTheme: Codable, Equatable {
         /// Держать форму выреза даже на экранах без чёлки — остров врастает
         /// в кромку вместо того, чтобы висеть отдельной плашкой.
         var alwaysUseNotchShape: Bool = true
+    }
+
+    enum DotsPlacement: String, Codable, CaseIterable {
+        /// Внутри карточки, у нижней кромки.
+        case inside
+        /// Отдельной капсулой под островом.
+        case below
     }
 
     enum DisplayMode: String, Codable, CaseIterable {

@@ -70,15 +70,48 @@ struct IslandBody: View {
                 .frame(width: size.width, height: size.height, alignment: .top)
                 .clipped()
 
-            // Точки внизу — как в постраничном просмотре: видно, что активностей
-            // несколько, и какая из них сейчас открыта.
-            if pageCount > 1 {
+            // Точки — как в постраничном просмотре: видно, что активностей
+            // несколько, и какая из них открыта. В пустом острове их нет:
+            // показывать нечего, а пилюля должна оставаться чёрным пятном.
+            if showsDots, theme.behavior.dotsPlacement == .inside {
                 pageDots
                     .frame(width: size.width, height: size.height, alignment: .bottom)
-                    .padding(.bottom, 3)
+                    .padding(.bottom, theme.geometry.dotsInset)
             }
         }
         .frame(width: size.width, height: size.height)
+    }
+
+    /// Капсула с точками под островом — второй вариант размещения.
+    @ViewBuilder
+    var dotsCapsule: some View {
+        if showsDots, theme.behavior.dotsPlacement == .below {
+            pageDots
+                .frame(
+                    width: theme.geometry.dotsCapsuleSize.width,
+                    height: theme.geometry.dotsCapsuleSize.height
+                )
+                .background {
+                    if #available(macOS 26.0, *), theme.palette.useLiquidGlass {
+                        Capsule().fill(.clear).glassEffect(glass, in: Capsule())
+                    } else {
+                        Capsule().fill(theme.palette.background.color)
+                    }
+                }
+                .padding(.top, theme.geometry.dotsCapsuleGap)
+        }
+    }
+
+    @available(macOS 26.0, *)
+    private var glass: Glass {
+        let base: Glass = theme.palette.glassStyle == .clear ? .clear : .regular
+        guard let tint = theme.palette.glassTint else { return base }
+        return base.tint(tint.color)
+    }
+
+    /// Есть ли что показывать точками: в пустом острове их быть не должно.
+    var showsDots: Bool {
+        pageCount > 1 && (hudEvent != nil || showsMedia || phase == .expanded)
     }
 
     private var pageDots: some View {

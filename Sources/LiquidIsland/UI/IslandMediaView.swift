@@ -138,8 +138,10 @@ struct IslandMediaView: View {
             .foregroundStyle(theme.palette.secondaryText.color)
             .animation(.easeInOut(duration: 0.35), value: Int(track.elapsed))
         }
-        .frame(height: isExpanded ? 24 : 0)
-        .opacity(isExpanded ? 1 : 0)
+        // У источника, найденного по звуку, длительности нет — полоса с
+        // нулями только сбивает с толку.
+        .frame(height: isExpanded && track.duration > 0 ? 24 : 0)
+        .opacity(isExpanded && track.duration > 0 ? 1 : 0)
         .clipped()
     }
 

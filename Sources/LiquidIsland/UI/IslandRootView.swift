@@ -23,7 +23,7 @@ struct IslandRootView: View {
     }
 
     private var island: some View {
-        IslandBody(
+        let body = IslandBody(
             media: media,
             track: state.shownTrack,
             theme: theme,
@@ -38,6 +38,10 @@ struct IslandRootView: View {
             swipeOffset: state.swipeOffset,
             swipeFade: state.swipeFade
         )
+        return VStack(spacing: 0) {
+            body
+            body.dotsCapsule
+        }
         // Слой стекла живёт в AppKit и берёт размер отсюда: Shape сообщает
         // его на каждом кадре пружины, поэтому стекло идёт с островом в ногу.
         .reportingAnimatedSize(size, to: onSizeChange)
