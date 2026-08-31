@@ -89,10 +89,11 @@ struct IslandMediaView: View {
     private var header: some View {
         HStack(spacing: isExpanded ? 12 : 8) {
             ArtworkView(image: track.artwork, size: artworkSize, cornerRadius: artworkRadius)
-                // На паузе обложка гаснет: остров подсказывает, что звука нет,
-                // ещё до того, как карточка уйдёт совсем.
+                // На паузе обложка гаснет и поджимается: остров подсказывает,
+                // что звука нет, ещё до того, как карточка уйдёт совсем.
                 .saturation(isDimmed ? 0.25 : 1)
                 .opacity(isDimmed ? 0.55 : 1)
+                .scaleEffect(isDimmed ? theme.geometry.pausedArtworkScale : 1)
                 .animation(theme.motion.content, value: isDimmed)
                 .modifier(RevealSource(isEnabled: canRevealSource, action: media.revealSource))
 

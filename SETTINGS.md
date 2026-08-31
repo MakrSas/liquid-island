@@ -23,6 +23,7 @@ switch or a choice.
 | `topRadius` | 0…20 | 9 | Top corners, curving outward into the screen edge |
 | `bottomRadiusClosed` | 0…20 | 8 | Bottom corners at rest |
 | `bottomRadiusOpen` | 0…40 | 11 | Bottom corners when expanded |
+| `pausedArtworkScale` | 0.5…1 | 0.82 | How far the artwork shrinks while paused |
 | `artworkRadius` | 0…16 | 5 | Artwork corner radius at rest |
 | `artworkRadiusHovered` | 0…16 | 8 | The same under the cursor |
 | `floatingTopInset` | 0…20 | 0 | Gap from the screen edge. Zero means the island grows out of it |
