@@ -119,6 +119,9 @@ final class IslandState: ObservableObject {
         case .closed:
             return restingSize
         case .hovered:
+            // Под плашкой остров не подрастает: у громкости и яркости нет
+            // подробностей, которые стоило бы раскрывать под курсором.
+            guard hudEvent == nil else { return restingSize }
             return CGSize(
                 width: restingSize.width + g.hoverPadding.width,
                 height: restingSize.height + g.hoverPadding.height

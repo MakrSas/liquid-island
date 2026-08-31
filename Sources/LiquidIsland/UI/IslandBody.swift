@@ -123,7 +123,10 @@ struct IslandBody: View {
     /// подсказкой к тому, чего не видно.
     var showsDots: Bool {
         guard pageCount > 1, phase != .closed else { return false }
-        return hudEvent != nil || showsMedia || phase == .expanded
+        // Под плашкой точек нет: она живёт полторы секунды, листать в это
+        // время нечего и незачем.
+        guard hudEvent == nil else { return false }
+        return showsMedia || phase == .expanded
     }
 
     private var pageDots: some View {
