@@ -31,13 +31,48 @@ final class ThemeStore: ObservableObject {
         let initial = ThemeStore.read(from: url) ?? .default
         theme = initial
         themeChanged = CurrentValueSubject(initial)
-        if !FileManager.default.fileExists(atPath: url.path) { write(theme) }
+        // Записываем всегда, а не только при первом запуске: так в файл
+        // дописываются ключи, появившиеся в новых версиях, и он остаётся
+        // полным описанием текущих настроек.
+        write(theme)
         startWatching()
     }
 
     private static func read(from url: URL) -> IslandTheme? {
         guard let data = try? Data(contentsOf: url) else { return nil }
-        return try? JSONDecoder().decode(IslandTheme.self, from: data)
+
+        // Прямое декодирование ломается, как только в теме появляется новый
+        // ключ: в старом файле его нет, разбор падает целиком, и все
+        // настройки пользователя молча заменяются значениями по умолчанию.
+        // Поэтому сохранённое накладывается поверх умолчаний, а недостающее
+        // берётся из них.
+        guard let stored = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let defaultsData = try? JSONEncoder().encode(IslandTheme.default),
+              let defaults = try? JSONSerialization.jsonObject(with: defaultsData) as? [String: Any]
+        else {
+            return try? JSONDecoder().decode(IslandTheme.self, from: data)
+        }
+
+        let merged = merge(defaults, with: stored)
+        guard let mergedData = try? JSONSerialization.data(withJSONObject: merged) else { return nil }
+        return try? JSONDecoder().decode(IslandTheme.self, from: mergedData)
+    }
+
+    /// Рекурсивно накладывает сохранённые значения на умолчания.
+    private static func merge(
+        _ defaults: [String: Any],
+        with stored: [String: Any]
+    ) -> [String: Any] {
+        var result = defaults
+        for (key, value) in stored {
+            if let nested = value as? [String: Any],
+               let base = defaults[key] as? [String: Any] {
+                result[key] = merge(base, with: nested)
+            } else {
+                result[key] = value
+            }
+        }
+        return result
     }
 
     func update(_ transform: (inout IslandTheme) -> Void) {
