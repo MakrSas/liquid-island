@@ -20,6 +20,8 @@ struct IslandTheme: Codable, Equatable {
         var compactSize: CGSize = CGSize(width: 304, height: 26)
         /// Плашка системного события: громкость, яркость, зарядка.
         var hudSize: CGSize = CGSize(width: 268, height: 30)
+        /// Предупреждение о низком заряде: две строки и кнопка.
+        var warningSize: CGSize = CGSize(width: 360, height: 64)
 
         /// Насколько остров подрастает при наведении — в основном вниз.
         var hoverPadding: CGSize = CGSize(width: 14, height: 24)
@@ -136,6 +138,13 @@ struct IslandTheme: Codable, Equatable {
         var showVolumeHUD: Bool = true
         var showBrightnessHUD: Bool = true
         var showPowerHUD: Bool = true
+        /// Предупреждать о низком заряде.
+        var showLowBatteryWarning: Bool = true
+        /// При каком проценте предупреждать.
+        var lowBatteryThreshold: Int = 20
+        /// Сколько секунд висит предупреждение — дольше обычной плашки:
+        /// на неё надо успеть нажать.
+        var warningDuration: Double = 6
         /// Сколько секунд висит плашка.
         var hudDuration: Double = 1.6
 

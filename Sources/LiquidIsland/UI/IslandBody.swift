@@ -70,9 +70,15 @@ struct IslandBody: View {
     @ViewBuilder
     private var content: some View {
         if let hudEvent {
-            HUDView(event: hudEvent, theme: theme)
-                .padding(theme.geometry.compactPadding)
-                .transition(.softFade(scale: 0.9, offsetY: 0))
+            if case .lowBattery(let charge) = hudEvent {
+                BatteryWarningView(charge: charge, theme: theme)
+                    .padding(theme.geometry.contentPadding)
+                    .transition(.softFade(scale: 0.9, offsetY: 0))
+            } else {
+                HUDView(event: hudEvent, theme: theme)
+                    .padding(theme.geometry.compactPadding)
+                    .transition(.softFade(scale: 0.9, offsetY: 0))
+            }
         } else if showsMedia || (phase == .expanded && !media.nowPlaying.isEmpty) {
             IslandMediaView(
                 media: media,

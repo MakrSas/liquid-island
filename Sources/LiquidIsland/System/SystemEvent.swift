@@ -6,6 +6,9 @@ enum SystemEvent: Equatable {
     case brightness(level: Float)
     /// Зарядку подключили или отключили.
     case power(plugged: Bool, charge: Int)
+    /// Заряд подходит к концу. Отдельно от `power`: тут не короткая плашка,
+    /// а предупреждение с кнопкой, и висит оно дольше.
+    case lowBattery(charge: Int)
 
     var icon: String {
         switch self {
@@ -18,6 +21,8 @@ enum SystemEvent: Equatable {
             return level < 0.5 ? "sun.min.fill" : "sun.max.fill"
         case .power(let plugged, _):
             return plugged ? "bolt.fill" : "battery.50"
+        case .lowBattery:
+            return "battery.25"
         }
     }
 
@@ -26,6 +31,7 @@ enum SystemEvent: Equatable {
         case .volume: return "Громкость"
         case .brightness: return "Яркость"
         case .power(let plugged, _): return plugged ? "Зарядка подключена" : "Зарядка отключена"
+        case .lowBattery(let charge): return "\(charge)% заряда"
         }
     }
 
@@ -35,6 +41,7 @@ enum SystemEvent: Equatable {
         case .volume(let level, let muted): return muted ? 0 : level
         case .brightness(let level): return level
         case .power(_, let charge): return Float(charge) / 100
+        case .lowBattery(let charge): return Float(charge) / 100
         }
     }
 
@@ -42,8 +49,16 @@ enum SystemEvent: Equatable {
     var readout: String {
         switch self {
         case .power(_, let charge): return "\(charge)%"
+        case .lowBattery(let charge): return "\(charge)%"
         default: return "\(Int((level * 100).rounded()))"
         }
+    }
+
+    /// Предупреждение о заряде показывается развёрнутой плашкой с кнопкой,
+    /// остальные — узкой полосой.
+    var isWarning: Bool {
+        if case .lowBattery = self { return true }
+        return false
     }
 
     /// События одного рода заменяют друг друга, не выстраиваясь в очередь.
@@ -52,6 +67,7 @@ enum SystemEvent: Equatable {
         case .volume: return 0
         case .brightness: return 1
         case .power: return 2
+        case .lowBattery: return 3
         }
     }
 }

@@ -98,12 +98,17 @@ final class IslandState: ObservableObject {
         case .volume: return theme.behavior.showVolumeHUD ? event : nil
         case .brightness: return theme.behavior.showBrightnessHUD ? event : nil
         case .power: return theme.behavior.showPowerHUD ? event : nil
+        case .lowBattery: return theme.behavior.showLowBatteryWarning ? event : nil
         }
     }
 
     /// Размер в покое: плашка события, карточка трека или узкая пилюля.
     var restingSize: CGSize {
-        if hudEvent != nil { return theme.geometry.hudSize }
+        // Предупреждение о заряде — с кнопкой и двумя строками, ему нужна
+        // высота больше, чем узкой плашке.
+        if let event = hudEvent {
+            return event.isWarning ? theme.geometry.warningSize : theme.geometry.hudSize
+        }
         guard showsMediaCard else {
             return metrics.hasHardwareNotch ? metrics.closedSize : theme.geometry.closedSize
         }

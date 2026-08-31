@@ -7,10 +7,21 @@ import IOKit.ps
 final class PowerMonitor: @unchecked Sendable {
     private var source: CFRunLoopSource?
     private var lastPlugged: Bool?
+    /// Порог, ниже которого уже предупреждали: иначе на каждом проценте
+    /// вылезала бы новая плашка.
+    private var warnedBelow: Int?
+    private let threshold: Int
     private let onChange: @Sendable (Bool, Int) -> Void
+    private let onLowBattery: @Sendable (Int) -> Void
 
-    init(onChange: @escaping @Sendable (Bool, Int) -> Void) {
+    init(
+        threshold: Int,
+        onChange: @escaping @Sendable (Bool, Int) -> Void,
+        onLowBattery: @escaping @Sendable (Int) -> Void
+    ) {
+        self.threshold = threshold
         self.onChange = onChange
+        self.onLowBattery = onLowBattery
     }
 
     deinit { stop() }
@@ -37,11 +48,27 @@ final class PowerMonitor: @unchecked Sendable {
 
     private func handleChange() {
         guard let state = Self.state() else { return }
-        // Уровень заряда меняется постоянно; показывать плашку стоит только на
-        // подключении и отключении.
+        checkLowBattery(state)
+
+        // Уровень заряда меняется постоянно; короткую плашку стоит показывать
+        // только на подключении и отключении.
         guard state.plugged != lastPlugged else { return }
         lastPlugged = state.plugged
         onChange(state.plugged, state.charge)
+    }
+
+    /// Предупреждаем один раз на пересечении порога, а не на каждом проценте.
+    /// Стоит воткнуть зарядку — счётчик сбрасывается, и в следующий разряд
+    /// предупреждение придёт снова.
+    private func checkLowBattery(_ state: (plugged: Bool, charge: Int)) {
+        guard !state.plugged else {
+            warnedBelow = nil
+            return
+        }
+        guard state.charge <= threshold else { return }
+        guard warnedBelow == nil || state.charge < warnedBelow! - 4 else { return }
+        warnedBelow = state.charge
+        onLowBattery(state.charge)
     }
 
     static func state() -> (plugged: Bool, charge: Int)? {

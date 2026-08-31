@@ -17,6 +17,7 @@ switch or a choice.
 | `closedSize` | size | 168 × 26 | The pill at rest, when nothing is playing |
 | `compactSize` | size | 304 × 26 | The now playing card at rest. Same height — the island grows sideways, not down |
 | `hudSize` | size | 268 × 30 | The system HUD: volume, brightness, power |
+| `warningSize` | size | 360 × 64 | The low battery warning: two lines and a button |
 | `hoverPadding` | size | 14 × 24 | How much it grows under the cursor. Downward growth happens only here |
 | `expandedSize` | size | 420 × 168 | The expanded player |
 | `topRadius` | 0…20 | 9 | Top corners, curving outward into the screen edge |
@@ -70,6 +71,9 @@ switch or a choice.
 | `showVolumeHUD` | yes/no | yes | HUD when the volume changes |
 | `showBrightnessHUD` | yes/no | yes | HUD when the brightness changes |
 | `showPowerHUD` | yes/no | yes | HUD when power is connected or disconnected |
+| `showLowBatteryWarning` | yes/no | yes | Warn when the battery runs low |
+| `lowBatteryThreshold` | 5…50 % | 20 | The percentage to warn at |
+| `warningDuration` | 2…15 s | 6 | How long the warning stays — longer than a HUD, there is a button to hit |
 | `hudDuration` | 0.5…5 s | 1.6 | How long a HUD stays |
 | `showLiveActivities` | yes/no | yes | Groundwork for pop-up activities |
 | `liveActivityDuration` | 1…10 s | 3 | How long those stay |

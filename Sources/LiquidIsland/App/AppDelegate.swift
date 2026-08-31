@@ -17,10 +17,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
 
         media.start()
-        hud.start(duration: themeStore.theme.behavior.hudDuration)
+        hud.start(
+            duration: themeStore.theme.behavior.hudDuration,
+            warningDuration: themeStore.theme.behavior.warningDuration,
+            threshold: themeStore.theme.behavior.lowBatteryThreshold
+        )
         rebuildIslands()
         installStatusItem()
         if ProcessInfo.processInfo.environment["LIQUID_ISLAND_DEBUG"] == "1" { dumpDiagnostics() }
+        // Показать предупреждение о заряде принудительно — иначе его не
+        // проверить, пока батарея не сядет.
+        if ProcessInfo.processInfo.environment["LIQUID_ISLAND_TEST_BATTERY"] == "1" {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+                self?.hud.testLowBattery()
+            }
+        }
         if ProcessInfo.processInfo.environment["LIQUID_ISLAND_TAP_TEST"] == "1" {
             media.levels.start()
             for delay in stride(from: 2.0, through: 8.0, by: 1.0) {

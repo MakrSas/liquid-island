@@ -57,8 +57,10 @@ struct IslandMediaView: View {
         .padding(padding)
     }
 
-    /// Есть ли куда переходить по клику.
-    private var canRevealSource: Bool { track.sourceBundleID != nil }
+    /// Есть ли куда переходить по клику. Только в раскрытом виде: под
+    /// курсором остров ещё не развёрнут, и клик там должен раскрывать его,
+    /// а не уводить в другое приложение.
+    private var canRevealSource: Bool { isExpanded && track.sourceBundleID != nil }
 
     // MARK: - Шапка
 
@@ -154,7 +156,9 @@ struct IslandMediaView: View {
         if canRevealSource {
             content()
                 .contentShape(Rectangle())
-                .onTapGesture { media.revealSource() }
+                // Обычный onTapGesture проигрывает жесту на самом острове:
+                // тот назначен на всю фигуру и перехватывает нажатие первым.
+                .highPriorityGesture(TapGesture().onEnded { media.revealSource() })
                 .help("Перейти в приложение")
         } else {
             content()
