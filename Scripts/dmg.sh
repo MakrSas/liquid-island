@@ -67,12 +67,15 @@ tell application "Finder"
         set toolbar visible of container window to false
         set statusbar visible of container window to false
         set the bounds of container window to {200, 120, ${RIGHT}, ${BOTTOM}}
-        set options to the icon view options of container window
-        set arrangement of options to not arranged
-        set icon size of options to $ICON_SIZE
+        -- Переменную нельзя звать options: это слово у Finder занято своим
+        -- смыслом, и присваивание падает с ошибкой -10006.
+        set viewOptions to the icon view options of container window
+        set arrangement of viewOptions to not arranged
+        set icon size of viewOptions to $ICON_SIZE
         if $HAS_BACKGROUND then
-            set background picture of options to ¬
-                (POSIX file "$MOUNT/.background/background.tiff" as alias)
+            -- Ссылка относительно диска, а не по пути: путь к точке
+            -- монтирования меняется, и фон теряется при следующем открытии.
+            set background picture of viewOptions to file ".background:background.tiff"
         end if
         set position of item "$APP_NAME.app" of container window to {$APP_X, $APP_Y}
         set position of item "Applications" of container window to {$LINK_X, $LINK_Y}
