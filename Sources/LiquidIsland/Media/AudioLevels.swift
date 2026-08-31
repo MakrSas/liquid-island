@@ -189,6 +189,12 @@ final class AudioLevels: ObservableObject {
     /// Уровни полос, 0…1, слева направо от низов к верхам.
     @Published private(set) var bands: [Float] = []
     @Published private(set) var isRunning = false
+    /// Идёт ли сейчас звук на самом деле.
+    ///
+    /// Приложение может держать выход открытым, стоя на паузе, — по одному
+    /// факту открытого выхода нельзя судить, играет ли что-то. Здесь смотрим
+    /// на сам сигнал.
+    @Published private(set) var hasSignal = false
 
     private let bandCount: Int
     private let fftSize = 1024
@@ -204,6 +210,8 @@ final class AudioLevels: ObservableObject {
     /// сломанным.
     private var silentFrames = 0
     private let silenceLimit = 90      // три секунды при 30 кадрах
+    private let signalLimit = 24       // около секунды: столько ждём, прежде
+                                       // чем считать, что звук прекратился
 
     /// Границы динамического диапазона в децибелах.
     private static let floorDB: Float = -84
@@ -239,6 +247,7 @@ final class AudioLevels: ObservableObject {
         session?.stop()
         session = nil
         isRunning = false
+        hasSignal = false
         silentFrames = 0
         smoothed = [Float](repeating: 0, count: bandCount)
         bands = []
@@ -296,12 +305,15 @@ final class AudioLevels: ObservableObject {
         let peak = fresh.max() ?? 0
         if peak < 0.001 {
             silentFrames += 1
+            // Короткие паузы между словами и тактами — ещё не тишина.
+            if silentFrames >= signalLimit, hasSignal { hasSignal = false }
             if silentFrames >= silenceLimit {
                 if !bands.isEmpty { bands = [] }
                 return
             }
         } else {
             silentFrames = 0
+            if !hasSignal { hasSignal = true }
         }
 
         // Быстро вверх, плавно вниз — как у настоящих индикаторов уровня.

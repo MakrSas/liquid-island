@@ -85,6 +85,7 @@ struct WaveformView: View {
     }
 
     private func barHeight(index: Int, time: Double) -> CGFloat {
+        // В тишине полоски стоят: рисовать движение под беззвучие — врать.
         guard isPlaying else { return height * 0.22 }
         // Разные частоты и сдвиги дают неповторяющийся, «живой» рисунок.
         let speed = 3.2 + Double(index) * 0.7

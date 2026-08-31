@@ -71,7 +71,15 @@ class MediaHub: ObservableObject {
     }
 
     private func apply(_ result: (NowPlaying, String)?) {
-        let value = result?.0 ?? .empty
+        var value = result?.0 ?? .empty
+
+        // Источник, найденный по звуку, знает только то, что приложение
+        // держит выход открытым. Fastpotify или браузер на паузе выглядят
+        // для него точно так же, как играющие. Настоящий ответ даёт сам
+        // сигнал: есть звук — играет, нет — стоит.
+        if !value.isEmpty, !value.supportsTransport {
+            value.isPlaying = levels.isRunning ? levels.hasSignal : true
+        }
         let name = result?.1 ?? "—"
         if activeProviderName != name { activeProviderName = name }
 
@@ -83,10 +91,13 @@ class MediaHub: ObservableObject {
         if value.isEmpty { lastTrackKey = "" }
         if value != nowPlaying { nowPlaying = value }
 
-        // Слушаем выход только пока что-то играет: отвод недёшев.
-        if value.isPlaying, !levels.isRunning {
+        // Отвод держим, пока источник вообще есть: у найденного по звуку
+        // именно отвод и отвечает на вопрос, играет ли он. Останавливать его
+        // по паузе значило бы отключать то, чем мы паузу и определяем.
+        let needsTap = value.isPlaying || (!value.isEmpty && !value.supportsTransport)
+        if needsTap, !levels.isRunning {
             levels.start()
-        } else if !value.isPlaying, levels.isRunning {
+        } else if !needsTap, levels.isRunning {
             levels.stop()
         }
     }
