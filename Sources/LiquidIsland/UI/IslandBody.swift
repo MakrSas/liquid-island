@@ -16,6 +16,10 @@ struct IslandBody: View {
     var levels: [Float] = []
     /// Плашка системного события, если она сейчас важнее трека.
     var hudEvent: SystemEvent?
+    /// Активности, которые сейчас не главные, — показываем значками.
+    var badges: [IslandActivity] = []
+    /// Нажатие по значку выводит активность вперёд.
+    var onBadgeTap: (IslandActivity) -> Void = { _ in }
     /// Сдвиг и прозрачность на свайпе.
     var swipeOffset: CGFloat = 0
     var swipeFade: Double = 1
@@ -58,11 +62,33 @@ struct IslandBody: View {
                     .opacity(showsMedia || phase != .closed ? 1 : 0)
             )
 
-            content
-                // Прижимаем к верху: если высоты не хватает, обрезаться должен
-                // низ, а не обложка с названием.
-                .frame(width: size.width, height: size.height, alignment: .top)
-                .clipped()
+            HStack(spacing: 8) {
+                content
+                // Остальные активности живут значками у правого края: так их
+                // видно все сразу, а не по очереди.
+                if !badges.isEmpty {
+                    ForEach(badges) { activity in
+                        Button {
+                            onBadgeTap(activity)
+                        } label: {
+                            Image(systemName: activity.badgeIcon)
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(theme.palette.secondaryText.color)
+                                .frame(width: 18, height: 18)
+                                .background(
+                                    Circle().fill(theme.palette.rimLight.color.opacity(0.5))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .help("Показать эту активность")
+                    }
+                    .padding(.trailing, theme.geometry.compactPadding.trailing)
+                }
+            }
+            // Прижимаем к верху: если высоты не хватает, обрезаться должен
+            // низ, а не обложка с названием.
+            .frame(width: size.width, height: size.height, alignment: .top)
+            .clipped()
         }
         .frame(width: size.width, height: size.height)
     }

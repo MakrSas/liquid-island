@@ -22,6 +22,7 @@ final class IslandState: ObservableObject {
 
     let media: MediaHub
     let hud: SystemHUD
+    let activities: ActivityCenter
     private let themeStore: ThemeStore
     private var bag = Set<AnyCancellable>()
     private var hoverOpenWork: DispatchWorkItem?
@@ -39,7 +40,18 @@ final class IslandState: ObservableObject {
         self.metrics = metrics
         self.media = media
         self.hud = hud
+        self.activities = ActivityCenter(media: media, hud: hud)
         self.themeStore = themeStore
+
+        // Закрепление активности меняет и содержимое, и ширину.
+        activities.$pinned
+            .removeDuplicates()
+            .dropFirst()
+            .sink { [weak self] _ in
+                guard let self else { return }
+                withAnimation(self.theme.motion.open) { self.objectWillChange.send() }
+            }
+            .store(in: &bag)
 
         // Плашка системного события меняет размер острова так же, как трек.
         hud.$event
@@ -93,13 +105,31 @@ final class IslandState: ObservableObject {
     var hudEvent: SystemEvent? {
         // В раскрытом виде плашка не нужна: пользователь уже смотрит в остров.
         guard phase != .expanded else { return nil }
-        guard let event = hud.event else { return nil }
+        guard let event = hud.event, isEnabled(event) else { return nil }
+        // Плашка уступает, если пользователь вывел вперёд другую активность.
+        guard case .system = activities.primary else { return nil }
+        return event
+    }
+
+    private func isEnabled(_ event: SystemEvent) -> Bool {
         switch event {
-        case .volume: return theme.behavior.showVolumeHUD ? event : nil
-        case .brightness: return theme.behavior.showBrightnessHUD ? event : nil
-        case .power: return theme.behavior.showPowerHUD ? event : nil
-        case .lowBattery: return theme.behavior.showLowBatteryWarning ? event : nil
+        case .volume: return theme.behavior.showVolumeHUD
+        case .brightness: return theme.behavior.showBrightnessHUD
+        case .power: return theme.behavior.showPowerHUD
+        case .lowBattery: return theme.behavior.showLowBatteryWarning
         }
+    }
+
+    /// Значки активностей, которые сейчас не главные.
+    var badges: [IslandActivity] {
+        guard phase != .expanded else { return [] }
+        return activities.others
+    }
+
+    /// Ширина, которую занимают значки прочих активностей.
+    private var badgesWidth: CGFloat {
+        guard !badges.isEmpty else { return 0 }
+        return CGFloat(badges.count) * 26
     }
 
     /// Размер в покое: плашка события, карточка трека или узкая пилюля.
@@ -107,12 +137,14 @@ final class IslandState: ObservableObject {
         // Предупреждение о заряде — с кнопкой и двумя строками, ему нужна
         // высота больше, чем узкой плашке.
         if let event = hudEvent {
-            return event.isWarning ? theme.geometry.warningSize : theme.geometry.hudSize
+            let base = event.isWarning ? theme.geometry.warningSize : theme.geometry.hudSize
+            return CGSize(width: base.width + badgesWidth, height: base.height)
         }
         guard showsMediaCard else {
             return metrics.hasHardwareNotch ? metrics.closedSize : theme.geometry.closedSize
         }
-        return theme.geometry.compactSize
+        let base = theme.geometry.compactSize
+        return CGSize(width: base.width + badgesWidth, height: base.height)
     }
 
     /// Показываем ли карточку трека вместо пустой пилюли.

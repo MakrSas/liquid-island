@@ -32,6 +32,8 @@ struct IslandRootView: View {
             showsMedia: state.showsMediaCard,
             levels: audio.bands,
             hudEvent: state.hudEvent,
+            badges: state.badges,
+            onBadgeTap: { state.activities.pin($0) },
             swipeOffset: state.swipeOffset,
             swipeFade: state.swipeFade
         )

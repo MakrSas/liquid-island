@@ -26,9 +26,12 @@ struct HUDView: View {
             Text(event.readout)
                 .font(.system(size: 11, weight: .semibold).monospacedDigit())
                 .foregroundStyle(theme.palette.primaryText.color)
-                .frame(minWidth: 28, alignment: .trailing)
+                // Ширина фиксированная, а не минимальная: иначе на переходе
+                // от 9 к 100 значение раздвигает шкалу и всё едет вбок.
+                .frame(width: 34, alignment: .trailing)
                 .contentTransition(.numericText())
         }
+        .frame(maxHeight: .infinity, alignment: .center)
         .animation(theme.motion.content, value: event)
     }
 }

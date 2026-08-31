@@ -19,7 +19,9 @@ struct IslandTheme: Codable, Equatable {
         /// расширяется вбок, а не вниз.
         var compactSize: CGSize = CGSize(width: 304, height: 26)
         /// Плашка системного события: громкость, яркость, зарядка.
-        var hudSize: CGSize = CGSize(width: 268, height: 30)
+        /// Ширина совпадает с карточкой трека: иначе остров дёргается в
+        /// ширине, когда плашка перебивает музыку.
+        var hudSize: CGSize = CGSize(width: 304, height: 30)
         /// Предупреждение о низком заряде: две строки и кнопка.
         var warningSize: CGSize = CGSize(width: 360, height: 64)
 
