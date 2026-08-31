@@ -11,6 +11,27 @@ import SwiftUI
 /// Своей анимации здесь нет намеренно: движение ведёт та же пружина, что
 /// меняет размер острова. Вторая анимация поверх неё разводит кадр и
 /// содержимое по разным кривым, и переход рассыпается.
+/// Переход в приложение-источник по нажатию.
+///
+/// Раньше это была обёртка с ветвлением по фазе: в раскрытом виде одна вью, в
+/// свёрнутом другая. Для SwiftUI это разные вьюхи, поэтому на каждом переходе
+/// он создавал вторую копию названия и сшивал их затуханием — то самое
+/// мигание вместо перетекания. Здесь ветвления нет: жест висит всегда, а
+/// маска включает и выключает его, не трогая саму вью.
+struct RevealSource: ViewModifier {
+    let isEnabled: Bool
+    let action: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .contentShape(Rectangle())
+            .highPriorityGesture(
+                TapGesture().onEnded { action() },
+                including: isEnabled ? .all : .none
+            )
+    }
+}
+
 struct IslandMediaView: View {
     @ObservedObject var media: MediaHub
     let theme: IslandTheme
@@ -66,18 +87,16 @@ struct IslandMediaView: View {
 
     private var header: some View {
         HStack(spacing: isExpanded ? 12 : 8) {
-            source {
-                ArtworkView(image: track.artwork, size: artworkSize, cornerRadius: artworkRadius)
-            }
+            ArtworkView(image: track.artwork, size: artworkSize, cornerRadius: artworkRadius)
+                .modifier(RevealSource(isEnabled: canRevealSource, action: media.revealSource))
 
             VStack(alignment: .leading, spacing: showsArtist ? 2 : 0) {
-                source {
-                    Text(track.title.isEmpty ? "Ничего не играет" : track.title)
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(theme.palette.primaryText.color)
-                        .lineLimit(1)
-                        .scaleEffect(titleScale, anchor: .leading)
-                }
+                Text(track.title.isEmpty ? "Ничего не играет" : track.title)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(theme.palette.primaryText.color)
+                    .lineLimit(1)
+                    .scaleEffect(titleScale, anchor: .leading)
+                    .modifier(RevealSource(isEnabled: canRevealSource, action: media.revealSource))
 
                 Text(track.artist)
                     .font(.system(size: 10, weight: .medium))
@@ -146,23 +165,6 @@ struct IslandMediaView: View {
         .allowsHitTesting(isExpanded && track.supportsTransport)
         .frame(height: isExpanded ? 36 : 0)
         .clipped()
-    }
-
-    /// Обложка и название ведут в приложение, откуда играет музыка.
-    /// Клик по острову раскрывает его, поэтому переход вешаем только там,
-    /// где есть куда идти, и гасим общий жест.
-    @ViewBuilder
-    private func source<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        if canRevealSource {
-            content()
-                .contentShape(Rectangle())
-                // Обычный onTapGesture проигрывает жесту на самом острове:
-                // тот назначен на всю фигуру и перехватывает нажатие первым.
-                .highPriorityGesture(TapGesture().onEnded { media.revealSource() })
-                .help("Перейти в приложение")
-        } else {
-            content()
-        }
     }
 
     private static func format(_ seconds: TimeInterval) -> String {

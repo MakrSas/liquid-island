@@ -114,6 +114,9 @@ struct IslandBody: View {
             )
             .offset(x: swipeOffset)
             .opacity(swipeFade)
+            // Без своего перехода SwiftUI подставляет затухание, и карточка
+            // мигает вместо того, чтобы перетекать вместе с островом.
+            .transition(.identity)
         } else {
             // Без музыки остров — просто чёрное пятно, неотличимое от выреза.
             Color.clear

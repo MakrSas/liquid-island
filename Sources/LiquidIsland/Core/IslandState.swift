@@ -126,25 +126,19 @@ final class IslandState: ObservableObject {
         return activities.others
     }
 
-    /// Ширина, которую занимают значки прочих активностей.
-    private var badgesWidth: CGFloat {
-        guard !badges.isEmpty else { return 0 }
-        return CGFloat(badges.count) * 26
-    }
-
     /// Размер в покое: плашка события, карточка трека или узкая пилюля.
     var restingSize: CGSize {
         // Предупреждение о заряде — с кнопкой и двумя строками, ему нужна
         // высота больше, чем узкой плашке.
         if let event = hudEvent {
-            let base = event.isWarning ? theme.geometry.warningSize : theme.geometry.hudSize
-            return CGSize(width: base.width + badgesWidth, height: base.height)
+            // Ширину под значки не добавляем: остров не должен менять размер
+            // от того, сколько активностей ждёт своей очереди.
+            return event.isWarning ? theme.geometry.warningSize : theme.geometry.hudSize
         }
         guard showsMediaCard else {
             return metrics.hasHardwareNotch ? metrics.closedSize : theme.geometry.closedSize
         }
-        let base = theme.geometry.compactSize
-        return CGSize(width: base.width + badgesWidth, height: base.height)
+        return theme.geometry.compactSize
     }
 
     /// Показываем ли карточку трека вместо пустой пилюли.

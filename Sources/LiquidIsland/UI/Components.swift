@@ -61,7 +61,11 @@ struct WaveformView: View {
                     }
                 }
                 .frame(height: height, alignment: .center)
-                .animation(.linear(duration: 1.0 / 30.0), value: levels)
+                // Своей анимации у полосок нет намеренно. Уровни и так
+                // приходят тридцать раз в секунду, а отдельная кривая поверх
+                // пружины морфинга разводит полоски по разным таймингам —
+                // часть отстаёт, и это видно при раскрытии.
+                .animation(nil, value: levels)
             }
         }
     }
