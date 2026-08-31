@@ -78,6 +78,8 @@ switch or a choice.
 
 | Setting | Status | What's known |
 |---|---|---|
+| Scrubbing on the progress bar | not done | The bar should be draggable to seek, and grow thicker while held — the way the iPhone player does it. Needs a drag gesture on `ProgressBarView` plus a seek command in `MediaProvider`: AppleScript can set `player position` in both Spotify and Music, so the scriptable sources can do it; the CoreAudio source can't and should keep the bar read-only |
+| Equalizer lags during the morph | bug | The last bar of the equalizer trails behind the rest while the island expands or collapses. Most likely the `WaveformView` bars get their own implicit animation from the level updates, which fights the spring driving the morph — the same class of problem as the glass that used to run ahead of the island. Worth checking whether pinning the bar heights to the phase animation fixes it |
 | Turning off the glass saturation boost | not done | Liquid Glass tints and intensifies the colours behind it. Over dark artwork or a busy wallpaper this is noticeable, and not everyone wants it. There is no public API: `NSGlassEffectView` exposes only `style`, `tintColor`, `cornerRadius` and `effectIsInteractive`. Among the private properties, `_tintOpacityReduced`, `_vibrantBlendingStyleForSubtree`, `_variant` and `_subvariant` look related — they need to be tried one by one on the bench (`--glass-lab`) to see which one kills the tinting. If none of them fits, the fallback is a compensating layer above the glass with inverse saturation |
 
 ## Worth remembering
