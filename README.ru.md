@@ -111,7 +111,7 @@ open build/LiquidIsland.app
 
 Под настройками лежит обычный JSON —
 `~/Library/Application Support/LiquidIsland/theme.json`. Он читается на лету,
-так что править можно и руками. Полное описание ключей: [SETTINGS.md](SETTINGS.md).
+так что править можно и руками. Полное описание ключей: [SETTINGS.ru.md](SETTINGS.ru.md).
 
 ## Разрешения
 
