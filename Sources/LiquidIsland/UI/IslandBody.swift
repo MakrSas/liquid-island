@@ -111,6 +111,9 @@ struct IslandBody: View {
                         .combined(with: .opacity)
                         .combined(with: .scale(scale: 0.8, anchor: .top))
                 )
+                // Ширина полосы не зависит от острова: иначе капсула ехала бы
+                // вбок вместе с ним, пока он меняет размер.
+                .frame(maxWidth: .infinity)
         }
     }
 
@@ -121,10 +124,11 @@ struct IslandBody: View {
         return base.tint(tint.color)
     }
 
-    /// Точки нужны там, где ими пользуются: под курсором и в раскрытом виде.
-    /// В покое остров должен оставаться спокойным.
+    /// Точки нужны там, где есть что листать. Над пустым островом они висели
+    /// подсказкой к тому, чего не видно.
     var showsDots: Bool {
-        pageCount > 1 && phase != .closed
+        guard pageCount > 1, phase != .closed else { return false }
+        return hudEvent != nil || showsMedia || phase == .expanded
     }
 
     private var pageDots: some View {

@@ -206,8 +206,6 @@ final class IslandState: ObservableObject {
 
     /// Пришёл горизонтальный сдвиг с тачпада.
     func swipe(by delta: CGFloat) {
-        // В раскрытом виде свайп не нужен: там листать нечего, всё на виду.
-        guard phase != .expanded else { return }
         guard hasMedia || activities.pageCount > 1 else { return }
         // При нескольких активностях тянуть можно в обе стороны — это листание.
         // С одной: вправо смахиваем карточку, влево возвращаем спрятанную.
@@ -233,7 +231,9 @@ final class IslandState: ObservableObject {
             if passed {
                 if activities.pageCount > 1 {
                     activities.step(direction)
-                } else {
+                } else if phase != .expanded {
+                    // Смахнуть карточку можно только в покое: в раскрытом
+                    // виде это выглядело бы случайным закрытием.
                     isDismissed.toggle()
                 }
             }
