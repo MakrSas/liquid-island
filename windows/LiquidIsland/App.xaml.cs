@@ -60,6 +60,7 @@ public partial class App : Application
     {
         _media.Stop();
         _hud.Dispose();
+        _island?.Close();
         if (_tray is not null)
         {
             _tray.Visible = false;

@@ -17,6 +17,7 @@ public partial class IslandWindow : Window
 {
     private readonly MediaHub _media;
     private readonly SystemHud _hud;
+    private readonly AudioLevels _levels = new();
     private readonly DispatcherTimer _mouseWatch = new();
     private SizeAnimator? _animator;
     private readonly DispatcherTimer _pauseWatch = new();
@@ -39,6 +40,8 @@ public partial class IslandWindow : Window
 
         _media.Changed += OnSourcesChanged;
         _hud.Changed += OnSystemEvent;
+        _levels.Changed += () => Dispatcher.Invoke(RefreshWaveform);
+        _levels.Start();
         ThemeStore.Shared.Changed += () => Dispatcher.Invoke(Relayout);
 
         Loaded += OnLoaded;
@@ -349,25 +352,25 @@ public partial class IslandWindow : Window
 
         if (_hud.Current is { } value)
         {
-            HudCard.Visibility = Visibility.Visible;
-            MediaCard.Visibility = Visibility.Collapsed;
-            PlayerExtras.Visibility = Visibility.Collapsed;
+            Show(HudCard);
+            Hide(MediaCard);
+            Hide(PlayerExtras);
             HudGlyph.Text = value.Glyph;
             HudReadout.Text = value.Readout;
             HudFill.Width = Math.Max(ContentLayer.Width - 60, 0) * value.Level;
             return;
         }
 
-        HudCard.Visibility = Visibility.Collapsed;
+        Hide(HudCard);
         if (!ShowsMediaCard && openness <= 0)
         {
-            MediaCard.Visibility = Visibility.Collapsed;
-            PlayerExtras.Visibility = Visibility.Collapsed;
+            Hide(MediaCard);
+            Hide(PlayerExtras);
             return;
         }
 
         var track = ShownTrack;
-        MediaCard.Visibility = Visibility.Visible;
+        Show(MediaCard);
         TitleText.Text = track.Title.Length > 0 ? track.Title : "Ничего не играет";
         ArtistText.Text = track.Artist;
 
@@ -416,8 +419,12 @@ public partial class IslandWindow : Window
         // Полоса и кнопки проявляются во второй половине раскрытия: раньше
         // им просто не хватает высоты, и они наезжают на шапку.
         var reveal = Math.Clamp((openness - 0.45) / 0.55, 0, 1);
-        PlayerExtras.Visibility = reveal > 0 ? Visibility.Visible : Visibility.Collapsed;
-        if (reveal <= 0) return;
+        if (reveal <= 0)
+        {
+            Hide(PlayerExtras);
+            return;
+        }
+        PlayerExtras.Visibility = Visibility.Visible;
 
         PlayerExtras.Opacity = reveal;
         MediaCard.VerticalAlignment = VerticalAlignment.Top;
@@ -436,6 +443,54 @@ public partial class IslandWindow : Window
         PlayerExtras.Opacity = enabled ? reveal : reveal * 0.4;
     }
 
+    /// <summary>
+    /// Показывает часть острова затуханием с лёгким уменьшением.
+    /// </summary>
+    /// <remarks>
+    /// В версии для macOS смена содержимого идёт таким же переходом, и без
+    /// него подмена читается рывком: плашка исчезает, карточка появляется, а
+    /// между ними пустой кадр.
+    /// </remarks>
+    private void Show(FrameworkElement element)
+    {
+        if (element.Visibility == Visibility.Visible && element.Opacity > 0.99) return;
+
+        element.Visibility = Visibility.Visible;
+        var motion = Theme.Motion;
+        var duration = new Duration(TimeSpan.FromSeconds(motion.ContentResponse));
+
+        element.BeginAnimation(OpacityProperty,
+            new DoubleAnimation(0, 1, duration) { EasingFunction = Ease() });
+
+        if (element.RenderTransform is not ScaleTransform scale)
+        {
+            scale = new ScaleTransform(1, 1);
+            element.RenderTransformOrigin = new Point(0.5, 0.5);
+            element.RenderTransform = scale;
+        }
+        var grow = new DoubleAnimation(0.94, 1, duration) { EasingFunction = Ease() };
+        scale.BeginAnimation(ScaleTransform.ScaleXProperty, grow);
+        scale.BeginAnimation(ScaleTransform.ScaleYProperty, grow);
+    }
+
+    private void Hide(FrameworkElement element)
+    {
+        if (element.Visibility != Visibility.Visible) return;
+
+        var duration = new Duration(TimeSpan.FromSeconds(Theme.Motion.ContentResponse * 0.8));
+        var fade = new DoubleAnimation(element.Opacity, 0, duration) { EasingFunction = Ease() };
+        // Прячем только когда затухание закончилось, иначе элемент исчезал бы
+        // мгновенно, а анимация шла бы в пустоту.
+        fade.Completed += (_, _) =>
+        {
+            if (element.Opacity <= 0.01) element.Visibility = Visibility.Collapsed;
+        };
+        element.BeginAnimation(OpacityProperty, fade);
+    }
+
+    private static IEasingFunction Ease() =>
+        new CubicEase { EasingMode = EasingMode.EaseOut };
+
     private static string Format(TimeSpan value)
     {
         if (value < TimeSpan.Zero) value = TimeSpan.Zero;
@@ -451,9 +506,12 @@ public partial class IslandWindow : Window
         Lerp(from.Right, to.Right, amount),
         Lerp(from.Bottom, to.Bottom, amount));
 
+    private double _waveHeight = 10;
+
     private void UpdateWaveform(NowPlaying track, double openness)
     {
-        var color = track.Accent ?? Colors.White;
+        _waveHeight = Lerp(10, 16, openness);
+
         if (Waveform.Children.Count == 0)
         {
             for (var i = 0; i < 4; i++)
@@ -468,14 +526,39 @@ public partial class IslandWindow : Window
             }
         }
 
-        var height = Lerp(10, 16, openness);
+        var color = track.Accent ?? Colors.White;
+        foreach (var child in Waveform.Children)
+        {
+            if (child is Border bar) bar.Background = new SolidColorBrush(color);
+        }
+
+        RefreshWaveform();
+    }
+
+    /// <summary>
+    /// Обновляет высоту полосок по уровням звука.
+    /// </summary>
+    /// <remarks>
+    /// Зовётся отдельно от общей перерисовки: уровни приходят тридцать раз в
+    /// секунду, а пересчитывать из-за них геометрию острова незачем.
+    /// </remarks>
+    private void RefreshWaveform()
+    {
+        var bands = _levels.Bands;
+        var playing = ShownTrack.IsPlaying;
+
         for (var i = 0; i < Waveform.Children.Count; i++)
         {
             if (Waveform.Children[i] is not Border bar) continue;
-            bar.Background = new SolidColorBrush(color);
-            // Пока звук не снимается, рисунок задаётся высотой полосок: в
-            // тишине они стоят ровно, при игре различаются.
-            bar.Height = track.IsPlaying ? height * (0.4 + 0.6 * ((i % 3) + 1) / 3.0) : height * 0.22;
+
+            // В тишине полоски стоят: рисовать движение под беззвучие — врать.
+            if (!playing || !_levels.HasSignal || bands.Length <= i)
+            {
+                bar.Height = _waveHeight * 0.22;
+                continue;
+            }
+
+            bar.Height = _waveHeight * (0.18 + 0.82 * bands[i]);
         }
     }
 
