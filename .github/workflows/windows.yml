@@ -1,0 +1,36 @@
+name: Windows
+
+# Сборка порта под Windows. Основной проект собирается на macOS вручную —
+# здесь только версия для Windows, чтобы её можно было проверить без машины
+# с этой системой под рукой.
+on:
+  push:
+    branches: [windows-port, main]
+    paths: ['windows/**', '.github/workflows/windows.yml']
+  pull_request:
+    paths: ['windows/**']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Сборка
+        working-directory: windows/LiquidIsland
+        run: dotnet build -c Release -p:Platform=x64
+
+      - name: Публикация
+        working-directory: windows/LiquidIsland
+        run: dotnet publish -c Release -r win-x64 --self-contained false -o ../../build/windows
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LiquidIsland-windows
+          path: build/windows
