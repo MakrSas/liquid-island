@@ -13,6 +13,39 @@
         SnapsToDevicePixels="True">
 
     <!-- Всё выравнивается по верхней кромке: остров вырастает из неё. -->
+    <Window.Resources>
+        <!-- Кнопки транспорта: только значок, без рамки и подложки. Подсветка
+             под курсором и нажатие показываются прозрачностью. -->
+        <Style TargetType="Button">
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="6" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="Transparent" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter x:Name="Content"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Content" Property="Opacity" Value="0.7" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Content" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
     <Grid x:Name="Root" VerticalAlignment="Top" HorizontalAlignment="Center">
         <Grid x:Name="IslandLayer" VerticalAlignment="Top">
             <!-- Сама фигура. Заливка чёрная сверху и прозрачная снизу — там
@@ -58,7 +91,11 @@
                                    VerticalAlignment="Center" />
                     </Border>
 
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,6,0">
+                    <StackPanel x:Name="TextColumn" Grid.Column="1"
+                                VerticalAlignment="Center" Margin="8,0,6,0">
+                        <StackPanel.RenderTransform>
+                            <ScaleTransform x:Name="TextScale" />
+                        </StackPanel.RenderTransform>
                         <TextBlock x:Name="TitleText"
                                    FontFamily="Segoe UI Variable Display"
                                    FontSize="11" FontWeight="SemiBold"
@@ -66,13 +103,38 @@
                         <TextBlock x:Name="ArtistText"
                                    FontFamily="Segoe UI Variable Text"
                                    FontSize="10"
-                                   Foreground="#99FFFFFF" TextTrimming="CharacterEllipsis"
-                                   Visibility="Collapsed" />
+                                   Foreground="#99FFFFFF" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
 
                     <StackPanel x:Name="Waveform" Grid.Column="2"
                                 Orientation="Horizontal" VerticalAlignment="Center" />
                 </Grid>
+
+                <StackPanel x:Name="PlayerExtras" VerticalAlignment="Bottom"
+                            Visibility="Collapsed">
+                    <Grid Margin="0,0,0,4">
+                        <Border Height="3" CornerRadius="1.5" Background="#38FFFFFF"
+                                VerticalAlignment="Center" />
+                        <Border x:Name="ProgressFill" Height="3" CornerRadius="1.5"
+                                Background="#D9FFFFFF"
+                                HorizontalAlignment="Left" VerticalAlignment="Center" />
+                    </Grid>
+
+                    <Grid Margin="0,0,0,6">
+                        <TextBlock x:Name="ElapsedText" HorizontalAlignment="Left"
+                                   FontFamily="Segoe UI Variable Text" FontSize="9"
+                                   Foreground="#99FFFFFF" />
+                        <TextBlock x:Name="RemainingText" HorizontalAlignment="Right"
+                                   FontFamily="Segoe UI Variable Text" FontSize="9"
+                                   Foreground="#99FFFFFF" />
+                    </Grid>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button x:Name="PreviousButton" Content="&#xE892;" Margin="0,0,20,0" />
+                        <Button x:Name="PlayPauseButton" Content="&#xE768;" />
+                        <Button x:Name="NextButton" Content="&#xE893;" Margin="20,0,0,0" />
+                    </StackPanel>
+                </StackPanel>
 
                 <Grid x:Name="HudCard" Visibility="Collapsed" VerticalAlignment="Center">
                     <Grid.ColumnDefinitions>

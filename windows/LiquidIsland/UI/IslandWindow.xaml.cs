@@ -24,6 +24,7 @@ public partial class IslandWindow : Window
     private IslandPhase _phase = IslandPhase.Closed;
     private IslandPhase? _phaseBeforeEvent;
     private bool _mouseInside;
+    private bool _mouseWasDown;
     private bool _hiddenByPause;
     private int _pageIndex;
     private IntPtr _handle;
@@ -43,6 +44,10 @@ public partial class IslandWindow : Window
         Loaded += OnLoaded;
         MouseLeftButtonUp += (_, _) => Toggle();
         MouseWheel += OnWheel;
+
+        PreviousButton.Click += (_, _) => Send(MediaCommand.Previous);
+        PlayPauseButton.Click += (_, _) => Send(MediaCommand.PlayPause);
+        NextButton.Click += (_, _) => Send(MediaCommand.Next);
     }
 
     private void OnLoaded(object sender, RoutedEventArgs args)
@@ -140,6 +145,12 @@ public partial class IslandWindow : Window
             ? _media.Sources[Math.Clamp(_pageIndex, 0, _media.Sources.Count - 1)]
             : NowPlaying.Empty;
 
+    /// <summary>Команда уходит тому источнику, который сейчас показан.</summary>
+    private void Send(MediaCommand command)
+    {
+        _media.Send(command, ShownTrack.SourceId);
+    }
+
     private void Toggle()
     {
         _phaseBeforeEvent = null;
@@ -219,6 +230,19 @@ public partial class IslandWindow : Window
             size.Height + 8);
 
         var inside = rect.Contains(cursor);
+
+        // Клик мимо сворачивает раскрытый остров. Ловим переход из отпущенного
+        // в нажатое, иначе одно удержание считалось бы за десяток кликов.
+        var down = NativeMethods.IsMouseDown();
+        if (down && !_mouseWasDown && !inside
+            && _phase == IslandPhase.Expanded
+            && Theme.Behavior.DismissOnOutsideClick)
+        {
+            _phaseBeforeEvent = null;
+            Transition(IslandPhase.Closed);
+        }
+        _mouseWasDown = down;
+
         // Окно ловит мышь только там, где нарисована фигура; всё остальное
         // должно проходить насквозь к окнам под ним.
         NativeMethods.SetClickThrough(_handle, !inside);
@@ -306,9 +330,19 @@ public partial class IslandWindow : Window
 
     private void UpdateContent(Size size)
     {
-        var padding = _phase == IslandPhase.Expanded
-            ? Theme.Geometry.ContentPadding
-            : Theme.Geometry.CompactPadding;
+        var geometry = Theme.Geometry;
+
+        // Насколько остров раскрыт: ноль в покое, единица в полном размере.
+        // Всё, что меняется при раскрытии, считается от этой доли — тогда
+        // содержимое едет вместе с островом, а не перескакивает между двумя
+        // заготовленными видами.
+        var resting = RestingSize.Height;
+        var full = geometry.ExpandedSize.Height;
+        var openness = full > resting
+            ? Math.Clamp((size.Height - resting) / (full - resting), 0, 1)
+            : 0;
+
+        var padding = Lerp(geometry.CompactPadding, geometry.ContentPadding, openness);
         ContentLayer.Margin = padding;
         ContentLayer.Width = Math.Max(size.Width - padding.Left - padding.Right, 0);
         ContentLayer.Height = Math.Max(size.Height - padding.Top - padding.Bottom, 0);
@@ -317,6 +351,7 @@ public partial class IslandWindow : Window
         {
             HudCard.Visibility = Visibility.Visible;
             MediaCard.Visibility = Visibility.Collapsed;
+            PlayerExtras.Visibility = Visibility.Collapsed;
             HudGlyph.Text = value.Glyph;
             HudReadout.Text = value.Readout;
             HudFill.Width = Math.Max(ContentLayer.Width - 60, 0) * value.Level;
@@ -324,9 +359,10 @@ public partial class IslandWindow : Window
         }
 
         HudCard.Visibility = Visibility.Collapsed;
-        if (!ShowsMediaCard && _phase != IslandPhase.Expanded)
+        if (!ShowsMediaCard && openness <= 0)
         {
             MediaCard.Visibility = Visibility.Collapsed;
+            PlayerExtras.Visibility = Visibility.Collapsed;
             return;
         }
 
@@ -335,22 +371,27 @@ public partial class IslandWindow : Window
         TitleText.Text = track.Title.Length > 0 ? track.Title : "Ничего не играет";
         ArtistText.Text = track.Artist;
 
-        var expanded = _phase == IslandPhase.Expanded;
-        var hovered = _phase == IslandPhase.Hovered;
-        ArtistText.Visibility = expanded || hovered ? Visibility.Visible : Visibility.Collapsed;
+        // Строка исполнителя появляется вместе с высотой, а не по щелчку фазы.
+        var reveal = Math.Clamp(openness * 2, 0, 1);
+        ArtistText.Opacity = _phase == IslandPhase.Closed ? 0 : Math.Max(reveal, 0.001);
 
-        var artworkSize = expanded ? 56 : hovered ? 34 : 18;
+        // Кегль в WPF не интерполируется, поэтому текст растёт масштабом.
+        var textScale = 1 + 0.18 * openness;
+        TextScale.ScaleX = textScale;
+        TextScale.ScaleY = textScale;
+
+        var artworkSize = Lerp(HoverArtworkSize, 56, openness);
         ArtworkBox.Width = artworkSize;
         ArtworkBox.Height = artworkSize;
         ArtworkBox.CornerRadius = new CornerRadius(
-            expanded ? 12 : hovered ? Theme.Geometry.ArtworkRadiusHovered : Theme.Geometry.ArtworkRadius);
+            Lerp(geometry.ArtworkRadiusHovered, 12, openness));
         ArtworkScale.CenterX = artworkSize / 2.0;
         ArtworkScale.CenterY = artworkSize / 2.0;
 
         // На паузе обложка гаснет и поджимается: остров подсказывает, что
         // звука нет, ещё до того, как карточка уйдёт совсем.
         var dimmed = Theme.Behavior.DimArtworkWhenPaused && !track.IsPlaying;
-        var scale = dimmed ? Theme.Geometry.PausedArtworkScale : 1;
+        var scale = dimmed ? geometry.PausedArtworkScale : 1;
         ArtworkScale.ScaleX = scale;
         ArtworkScale.ScaleY = scale;
         ArtworkBox.Opacity = dimmed ? 0.55 : 1;
@@ -363,10 +404,54 @@ public partial class IslandWindow : Window
             : Visibility.Collapsed;
         ArtworkFallback.FontSize = artworkSize * 0.45;
 
-        UpdateWaveform(track);
+        UpdatePlayer(track, openness);
+        UpdateWaveform(track, openness);
     }
 
-    private void UpdateWaveform(NowPlaying track)
+    /// <summary>Размер обложки в промежуточном состоянии под курсором.</summary>
+    private double HoverArtworkSize => _phase == IslandPhase.Closed ? 18 : 34;
+
+    private void UpdatePlayer(NowPlaying track, double openness)
+    {
+        // Полоса и кнопки проявляются во второй половине раскрытия: раньше
+        // им просто не хватает высоты, и они наезжают на шапку.
+        var reveal = Math.Clamp((openness - 0.45) / 0.55, 0, 1);
+        PlayerExtras.Visibility = reveal > 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (reveal <= 0) return;
+
+        PlayerExtras.Opacity = reveal;
+        MediaCard.VerticalAlignment = VerticalAlignment.Top;
+        MediaCard.Height = Math.Max(ContentLayer.Height - 66 * reveal, 0);
+
+        ProgressFill.Width = Math.Max(ContentLayer.Width, 0) * track.Progress;
+        ElapsedText.Text = Format(track.Elapsed);
+        RemainingText.Text = "-" + Format(track.Duration - track.Elapsed);
+
+        // Значок паузы и воспроизведения — из шрифта Segoe Fluent Icons.
+        PlayPauseButton.Content = track.IsPlaying ? "\uE769" : "\uE768";
+        var enabled = track.SupportsTransport;
+        PreviousButton.IsEnabled = enabled;
+        PlayPauseButton.IsEnabled = enabled;
+        NextButton.IsEnabled = enabled;
+        PlayerExtras.Opacity = enabled ? reveal : reveal * 0.4;
+    }
+
+    private static string Format(TimeSpan value)
+    {
+        if (value < TimeSpan.Zero) value = TimeSpan.Zero;
+        return $"{(int)value.TotalMinutes}:{value.Seconds:D2}";
+    }
+
+    private static double Lerp(double from, double to, double amount) =>
+        from + (to - from) * amount;
+
+    private static Thickness Lerp(Thickness from, Thickness to, double amount) => new(
+        Lerp(from.Left, to.Left, amount),
+        Lerp(from.Top, to.Top, amount),
+        Lerp(from.Right, to.Right, amount),
+        Lerp(from.Bottom, to.Bottom, amount));
+
+    private void UpdateWaveform(NowPlaying track, double openness)
     {
         var color = track.Accent ?? Colors.White;
         if (Waveform.Children.Count == 0)
@@ -383,7 +468,7 @@ public partial class IslandWindow : Window
             }
         }
 
-        var height = _phase == IslandPhase.Expanded ? 16 : 10;
+        var height = Lerp(10, 16, openness);
         for (var i = 0; i < Waveform.Children.Count; i++)
         {
             if (Waveform.Children[i] is not Border bar) continue;

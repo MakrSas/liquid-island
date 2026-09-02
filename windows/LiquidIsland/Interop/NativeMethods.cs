@@ -22,6 +22,25 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     public static extern bool GetCursorPos(out Point point);
 
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int key);
+
+    private const int VkLeftButton = 0x01;
+    private const int VkRightButton = 0x02;
+
+    /// <summary>
+    /// Нажата ли сейчас кнопка мыши где угодно на экране.
+    /// </summary>
+    /// <remarks>
+    /// Окно почти всё время сквозное и о чужих нажатиях не узнаёт, а свернуть
+    /// раскрытый остров по клику мимо надо. Ставить перехватчик ради этого
+    /// тяжело: состояние кнопки читается одним вызовом в том же такте, где мы
+    /// и так следим за курсором.
+    /// </remarks>
+    public static bool IsMouseDown() =>
+        (GetAsyncKeyState(VkLeftButton) & 0x8000) != 0
+        || (GetAsyncKeyState(VkRightButton) & 0x8000) != 0;
+
     [StructLayout(LayoutKind.Sequential)]
     public struct Point
     {
