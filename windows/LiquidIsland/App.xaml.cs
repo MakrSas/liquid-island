@@ -2,9 +2,10 @@ using System.Diagnostics;
 using System.Windows;
 using LiquidIsland.Core;
 using LiquidIsland.Media;
-using LiquidIsland.System;
+using LiquidIsland.Sensors;
 using LiquidIsland.UI;
 using Forms = System.Windows.Forms;
+using Drawing = System.Drawing;
 
 namespace LiquidIsland;
 
@@ -39,7 +40,7 @@ public partial class App : Application
     {
         _tray = new Forms.NotifyIcon
         {
-            Icon = global::System.Drawing.SystemIcons.Application,
+            Icon = Drawing.SystemIcons.Application,
             Visible = true,
             Text = "Liquid Island"
         };

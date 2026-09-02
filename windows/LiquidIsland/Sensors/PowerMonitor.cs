@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Windows.Threading;
 
-namespace LiquidIsland.System;
+namespace LiquidIsland.Sensors;
 
 /// <summary>Следит за питанием: подключением зарядки и уровнем заряда.</summary>
 public sealed class PowerMonitor : IDisposable

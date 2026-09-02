@@ -1,7 +1,7 @@
 using System.Management;
 using System.Windows.Threading;
 
-namespace LiquidIsland.System;
+namespace LiquidIsland.Sensors;
 
 /// <summary>
 /// Следит за яркостью встроенной панели.

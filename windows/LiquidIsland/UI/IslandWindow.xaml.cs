@@ -8,7 +8,8 @@ using System.Windows.Threading;
 using LiquidIsland.Core;
 using LiquidIsland.Interop;
 using LiquidIsland.Media;
-using LiquidIsland.System;
+using LiquidIsland.Sensors;
+using Forms = System.Windows.Forms;
 
 namespace LiquidIsland.UI;
 
@@ -69,7 +70,7 @@ public partial class IslandWindow : Window
 
     private void PlaceOnScreen()
     {
-        var screen = global::System.Windows.Forms.Screen.PrimaryScreen;
+        var screen = Forms.Screen.PrimaryScreen;
         if (screen is null) return;
 
         var source = PresentationSource.FromVisual(this);
@@ -247,7 +248,7 @@ public partial class IslandWindow : Window
         }
     }
 
-    private void OnWheel(object sender, global::System.Windows.Input.MouseWheelEventArgs args)
+    private void OnWheel(object sender, System.Windows.Input.MouseWheelEventArgs args)
     {
         if (_media.Sources.Count < 2) return;
         _pageIndex = (_pageIndex + (args.Delta > 0 ? 1 : -1) + _media.Sources.Count)

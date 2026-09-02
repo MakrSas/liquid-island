@@ -1,4 +1,4 @@
-namespace LiquidIsland.System;
+namespace LiquidIsland.Sensors;
 
 public enum SystemEventKind { Volume, Brightness, Power, LowBattery }
 

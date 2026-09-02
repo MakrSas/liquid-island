@@ -24,4 +24,13 @@
     <PackageReference Include="System.Management" Version="8.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- WinForms подключён только ради значка в трее. Его пространства имён из
+         неявных подключений убраны: вместе с WPF они дают два разных Color,
+         Size и Application, и любое упоминание становится неоднозначным.
+         Нужное из WinForms берётся по полному имени. -->
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
 </Project>

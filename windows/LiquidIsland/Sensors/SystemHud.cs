@@ -1,7 +1,7 @@
 using System.Windows.Threading;
 using LiquidIsland.Core;
 
-namespace LiquidIsland.System;
+namespace LiquidIsland.Sensors;
 
 /// <summary>
 /// Собирает системные события и отдаёт их острову.
