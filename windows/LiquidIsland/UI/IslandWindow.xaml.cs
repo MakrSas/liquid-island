@@ -18,6 +18,7 @@ public partial class IslandWindow : Window
     private readonly MediaHub _media;
     private readonly SystemHud _hud;
     private readonly DispatcherTimer _mouseWatch = new();
+    private SizeAnimator? _animator;
     private readonly DispatcherTimer _pauseWatch = new();
 
     private IslandPhase _phase = IslandPhase.Closed;
@@ -48,8 +49,10 @@ public partial class IslandWindow : Window
     {
         _handle = new WindowInteropHelper(this).Handle;
         NativeMethods.HideFromTaskbar(_handle);
-        ApplyAcrylic();
         PlaceOnScreen();
+
+        _animator = new SizeAnimator(Draw);
+        _animator.Set(CurrentSize);
         Relayout();
 
         // Курсор отслеживаем сами: окно почти всё время сквозное, и о движениях
@@ -85,21 +88,6 @@ public partial class IslandWindow : Window
         var area = screen.WorkingArea;
         Left = (screen.Bounds.X + screen.Bounds.Width / 2) / scaleX - Width / 2;
         Top = screen.Bounds.Y / scaleY;
-    }
-
-    private void ApplyAcrylic()
-    {
-        var palette = Theme.Palette;
-        if (!palette.UseAcrylic)
-        {
-            NativeMethods.SetAcrylic(_handle, false, 0);
-            return;
-        }
-
-        var color = ThemeStore.ParseColor(palette.AcrylicTint);
-        // Порядок байтов у этого вызова обратный привычному: ABGR.
-        var tint = (uint)(color.A << 24 | color.B << 16 | color.G << 8 | color.R);
-        NativeMethods.SetAcrylic(_handle, true, tint);
     }
 
     // --- Состояния ---
@@ -273,9 +261,23 @@ public partial class IslandWindow : Window
 
     // --- Отрисовка ---
 
+    /// <summary>Пересчитать желаемое состояние и поехать к нему пружиной.</summary>
     private void Relayout()
     {
-        var size = CurrentSize;
+        if (_animator is null) return;
+
+        var motion = Theme.Motion;
+        // Сворачивание идёт своей пружиной: она короче и без отскока.
+        var closing = CurrentSize.Width < _animator.Current.Width;
+        _animator.AnimateTo(
+            CurrentSize,
+            closing ? motion.CloseResponse : motion.OpenResponse,
+            closing ? motion.CloseDamping : motion.OpenDamping);
+    }
+
+    /// <summary>Отрисовать остров в заданном размере. Зовётся на каждом кадре.</summary>
+    private void Draw(Size size)
+    {
         var geometry = Theme.Geometry;
         var radius = _phase == IslandPhase.Expanded
             ? geometry.BottomRadiusOpen
@@ -353,7 +355,13 @@ public partial class IslandWindow : Window
         ArtworkScale.ScaleY = scale;
         ArtworkBox.Opacity = dimmed ? 0.55 : 1;
 
-        if (track.Artwork is not null) ArtworkBrush.ImageSource = track.Artwork;
+        // Присваиваем всегда, в том числе пустую: иначе от прошлого трека
+        // осталась бы чужая обложка.
+        ArtworkBrush.ImageSource = track.Artwork;
+        ArtworkFallback.Visibility = track.Artwork is null
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        ArtworkFallback.FontSize = artworkSize * 0.45;
 
         UpdateWaveform(track);
     }

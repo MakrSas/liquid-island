@@ -41,6 +41,7 @@
 
                     <Border x:Name="ArtworkBox" Grid.Column="0"
                             Width="18" Height="18" CornerRadius="5"
+                            Background="#22FFFFFF"
                             VerticalAlignment="Center">
                         <Border.RenderTransform>
                             <ScaleTransform x:Name="ArtworkScale" CenterX="9" CenterY="9" />
@@ -48,6 +49,14 @@
                         <Border.Background>
                             <ImageBrush x:Name="ArtworkBrush" Stretch="UniformToFill" />
                         </Border.Background>
+                        <!-- Видно, когда обложки нет: приложение может её не
+                             отдавать, и пустой квадрат читался бы как поломка. -->
+                        <TextBlock x:Name="ArtworkFallback"
+                                   Text="&#xE8D6;"
+                                   FontFamily="Segoe Fluent Icons"
+                                   Foreground="#66FFFFFF"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" />
                     </Border>
 
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,6,0">
