@@ -41,7 +41,6 @@
 
                     <Border x:Name="ArtworkBox" Grid.Column="0"
                             Width="18" Height="18" CornerRadius="5"
-                            Background="#22FFFFFF"
                             VerticalAlignment="Center">
                         <Border.RenderTransform>
                             <ScaleTransform x:Name="ArtworkScale" CenterX="9" CenterY="9" />
