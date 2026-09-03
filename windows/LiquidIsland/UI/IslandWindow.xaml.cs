@@ -21,6 +21,7 @@ public partial class IslandWindow : Window
     private readonly DispatcherTimer _mouseWatch = new();
     private SizeAnimator? _animator;
     private readonly DispatcherTimer _pauseWatch = new();
+    private readonly DispatcherTimer _hoverExit = new();
 
     private IslandPhase _phase = IslandPhase.Closed;
     private IslandPhase? _phaseBeforeEvent;
@@ -65,9 +66,16 @@ public partial class IslandWindow : Window
 
         // Курсор отслеживаем сами: окно почти всё время сквозное, и о движениях
         // мыши оно не узнаёт. Ровно та же причина, что и в версии для macOS.
-        _mouseWatch.Interval = TimeSpan.FromMilliseconds(60);
+        _mouseWatch.Interval = TimeSpan.FromMilliseconds(33);
         _mouseWatch.Tick += (_, _) => TrackMouse();
         _mouseWatch.Start();
+
+        _hoverExit.Tick += (_, _) =>
+        {
+            _hoverExit.Stop();
+            if (_mouseInside || _phase == IslandPhase.Expanded) return;
+            Transition(IslandPhase.Closed);
+        };
 
         _pauseWatch.Tick += (_, _) =>
         {
@@ -255,11 +263,16 @@ public partial class IslandWindow : Window
 
         if (inside)
         {
+            _hoverExit.Stop();
             if (_phase != IslandPhase.Expanded) Transition(IslandPhase.Hovered);
         }
         else if (_phase != IslandPhase.Expanded)
         {
-            Transition(IslandPhase.Closed);
+            // Небольшая задержка: остров не должен схлопываться от того, что
+            // курсор на мгновение задел его край по дороге.
+            _hoverExit.Interval = TimeSpan.FromSeconds(Theme.Behavior.HoverCloseDelay);
+            _hoverExit.Stop();
+            _hoverExit.Start();
         }
     }
 
@@ -303,6 +316,8 @@ public partial class IslandWindow : Window
     }
 
     /// <summary>Отрисовать остров в заданном размере. Зовётся на каждом кадре.</summary>
+    private Size _drawnSize = Size.Empty;
+
     private void Draw(Size size)
     {
         var geometry = Theme.Geometry;
@@ -310,7 +325,14 @@ public partial class IslandWindow : Window
             ? geometry.BottomRadiusOpen
             : geometry.BottomRadiusClosed;
 
-        IslandBody.Data = IslandShape.Build(size, geometry.TopRadius, radius);
+        // Геометрию пересобираем только на реальном изменении: на такте
+        // отрисовки это самая дорогая часть кадра.
+        if (Math.Abs(size.Width - _drawnSize.Width) > 0.05
+            || Math.Abs(size.Height - _drawnSize.Height) > 0.05)
+        {
+            IslandBody.Data = IslandShape.Build(size, geometry.TopRadius, radius);
+            _drawnSize = size;
+        }
         IslandBody.StrokeThickness = Theme.Palette.RimWidth;
         RimBrush.Color = ThemeStore.ParseColor(Theme.Palette.RimLight);
 
@@ -380,6 +402,9 @@ public partial class IslandWindow : Window
 
         // Кегль в WPF не интерполируется, поэтому текст растёт масштабом.
         var textScale = 1 + 0.18 * openness;
+        // Якорь слева: при росте от центра строка уезжала бы вбок вместе с
+        // масштабом, и это читалось бы как прыжок.
+        TextColumn.RenderTransformOrigin = new Point(0, 0.5);
         TextScale.ScaleX = textScale;
         TextScale.ScaleY = textScale;
 
@@ -512,6 +537,8 @@ public partial class IslandWindow : Window
         Lerp(from.Bottom, to.Bottom, amount));
 
     private double _waveHeight = 10;
+    private SolidColorBrush _waveBrush = new(Colors.White);
+    private int _dotCount = -1;
 
     private void UpdateWaveform(NowPlaying track, double openness)
     {
@@ -531,10 +558,17 @@ public partial class IslandWindow : Window
             }
         }
 
+        // Кисть меняем только когда цвет обложки действительно другой:
+        // создавать её тридцать раз в секунду незачем.
         var color = track.Accent ?? Colors.White;
-        foreach (var child in Waveform.Children)
+        if (_waveBrush.Color != color)
         {
-            if (child is Border bar) bar.Background = new SolidColorBrush(color);
+            _waveBrush = new SolidColorBrush(color);
+            _waveBrush.Freeze();
+            foreach (var child in Waveform.Children)
+            {
+                if (child is Border bar) bar.Background = _waveBrush;
+            }
         }
 
         RefreshWaveform();
@@ -579,17 +613,28 @@ public partial class IslandWindow : Window
         if (!visible) return;
 
         var geometry = Theme.Geometry;
-        Dots.Children.Clear();
-        for (var i = 0; i < count; i++)
+
+        // Точки пересобираем только когда их стало больше или меньше. Раньше
+        // они создавались заново на каждом кадре анимации и мерцали.
+        if (_dotCount != count)
         {
-            Dots.Children.Add(new Ellipse
+            _dotCount = count;
+            Dots.Children.Clear();
+            for (var i = 0; i < count; i++)
             {
-                Width = geometry.DotSize,
-                Height = geometry.DotSize,
-                Margin = new Thickness(geometry.DotSpacing / 2, 0, geometry.DotSpacing / 2, 0),
-                Fill = new SolidColorBrush(Colors.White),
-                Opacity = i == _pageIndex ? 0.9 : 0.3
-            });
+                Dots.Children.Add(new Ellipse
+                {
+                    Width = geometry.DotSize,
+                    Height = geometry.DotSize,
+                    Margin = new Thickness(geometry.DotSpacing / 2, 0, geometry.DotSpacing / 2, 0),
+                    Fill = Brushes.White
+                });
+            }
+        }
+
+        for (var i = 0; i < Dots.Children.Count; i++)
+        {
+            Dots.Children[i].Opacity = i == _pageIndex ? 0.9 : 0.3;
         }
 
         DotsCapsule.Height = geometry.DotsCapsuleHeight;
