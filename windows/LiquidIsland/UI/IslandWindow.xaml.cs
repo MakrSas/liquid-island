@@ -354,7 +354,7 @@ public partial class IslandWindow : Window
         {
             Show(HudCard);
             Hide(MediaCard);
-            Hide(PlayerExtras);
+            PlayerExtras.Visibility = Visibility.Collapsed;
             HudGlyph.Text = value.Glyph;
             HudReadout.Text = value.Readout;
             HudFill.Width = Math.Max(ContentLayer.Width - 60, 0) * value.Level;
@@ -365,7 +365,7 @@ public partial class IslandWindow : Window
         if (!ShowsMediaCard && openness <= 0)
         {
             Hide(MediaCard);
-            Hide(PlayerExtras);
+            PlayerExtras.Visibility = Visibility.Collapsed;
             return;
         }
 
@@ -421,14 +421,16 @@ public partial class IslandWindow : Window
         var reveal = Math.Clamp((openness - 0.45) / 0.55, 0, 1);
         if (reveal <= 0)
         {
-            Hide(PlayerExtras);
+            PlayerExtras.Visibility = Visibility.Collapsed;
             return;
         }
         PlayerExtras.Visibility = Visibility.Visible;
 
+        // Прозрачность задаётся напрямую и каждый кадр, поэтому анимацию с
+        // этого свойства снимаем: иначе она перебивает присваивание и плеер
+        // остаётся невидимым навсегда.
+        PlayerExtras.BeginAnimation(OpacityProperty, null);
         PlayerExtras.Opacity = reveal;
-        MediaCard.VerticalAlignment = VerticalAlignment.Top;
-        MediaCard.Height = Math.Max(ContentLayer.Height - 66 * reveal, 0);
 
         ProgressFill.Width = Math.Max(ContentLayer.Width, 0) * track.Progress;
         ElapsedText.Text = Format(track.Elapsed);
@@ -441,6 +443,9 @@ public partial class IslandWindow : Window
         PlayPauseButton.IsEnabled = enabled;
         NextButton.IsEnabled = enabled;
         PlayerExtras.Opacity = enabled ? reveal : reveal * 0.4;
+        // Высота карточки больше не задаётся руками: строки сетки разводят её
+        // с плеером сами. Раньше значение оставалось от раскрытого вида и в
+        // покое обрезало текст.
     }
 
     /// <summary>
